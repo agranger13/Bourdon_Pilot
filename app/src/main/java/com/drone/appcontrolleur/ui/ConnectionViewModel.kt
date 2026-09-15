@@ -3,10 +3,10 @@ package com.drone.appcontrolleur.ui
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.drone.appcontrolleur.DroneApp
 import com.drone.appcontrolleur.link.LinkSettings
 import com.drone.appcontrolleur.link.ProbeResult
 import com.drone.appcontrolleur.link.UdpProbe
-import com.drone.appcontrolleur.link.WifiConnector
 import com.drone.appcontrolleur.link.WifiState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -16,11 +16,10 @@ import kotlinx.coroutines.launch
 
 class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
 
-    private val connector = WifiConnector(app)
+    private val container = (app as DroneApp).container
+    private val connector = container.wifi
     val wifiState: StateFlow<WifiState> = connector.state
-
-    private val _settings = MutableStateFlow(LinkSettings())
-    val settings: StateFlow<LinkSettings> = _settings.asStateFlow()
+    val settings: StateFlow<LinkSettings> = container.settings
 
     private val _probing = MutableStateFlow(false)
     val probing: StateFlow<Boolean> = _probing.asStateFlow()
@@ -28,9 +27,9 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
     private val _probeResult = MutableStateFlow<ProbeResult?>(null)
     val probeResult: StateFlow<ProbeResult?> = _probeResult.asStateFlow()
 
-    fun updateSettings(transform: (LinkSettings) -> LinkSettings) = _settings.update(transform)
+    fun updateSettings(transform: (LinkSettings) -> LinkSettings) = container.settings.update(transform)
 
-    fun connect() = with(_settings.value) { connector.connect(ssid, password) }
+    fun connect() = with(settings.value) { connector.connect(ssid, password) }
 
     fun useCurrentWifi() = connector.useCurrentWifi()
 
@@ -39,14 +38,11 @@ class ConnectionViewModel(app: Application) : AndroidViewModel(app) {
     fun probe() {
         if (_probing.value) return
         val network = (wifiState.value as? WifiState.Connected)?.network
-        val settings = _settings.value
+        val settings = settings.value
         viewModelScope.launch {
             _probing.value = true
             _probeResult.value = UdpProbe.probe(network, settings, settings.protocol.codec())
             _probing.value = false
         }
     }
-
-    // §6.3 : libérer le réseau du drone en quittant l'écran
-    override fun onCleared() = connector.disconnect()
 }

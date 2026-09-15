@@ -25,6 +25,12 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    override fun onDestroy() {
+        // §6.3 : libérer le réseau du drone en quittant l'app
+        if (isFinishing) (application as DroneApp).container.wifi.disconnect()
+        super.onDestroy()
+    }
+
     // NF-5 : plein écran immersif
     private fun enterImmersiveMode() {
         WindowCompat.setDecorFitsSystemWindows(window, false)

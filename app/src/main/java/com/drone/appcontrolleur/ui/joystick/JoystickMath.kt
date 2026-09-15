@@ -25,6 +25,9 @@ object JoystickMath {
     /** Axe vertical sans retour au centre vers les gaz : bas = 0, haut = 1. */
     fun throttle(y: Float) = ((y + 1f) / 2f).coerceIn(0f, 1f)
 
+    /** Inverse de [throttle] : position verticale du manche pour des gaz donnés. */
+    fun throttleToY(throttle: Float) = throttle.coerceIn(0f, 1f) * 2f - 1f
+
     /** Position du manche gauche pour des gaz à zéro (F-SEC-6). */
     val THROTTLE_ZERO = Offset(0f, -1f)
 }
