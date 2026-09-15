@@ -8,7 +8,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.drone.appcontrolleur.ui.AppControlleurTheme
-import com.drone.appcontrolleur.ui.ConnectionScreen
+import com.drone.appcontrolleur.ui.AppRoot
 
 class MainActivity : ComponentActivity() {
 
@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             AppControlleurTheme {
-                ConnectionScreen()
+                AppRoot()
             }
         }
     }
