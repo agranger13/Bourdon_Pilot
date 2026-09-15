@@ -17,10 +17,11 @@ import com.drone.appcontrolleur.R
 
 /** Tokens de la maquette Claude Design « Drone RC - App Android », artboard 06. */
 object DroneColors {
-    val SurfaceBase = Color(0xFF04070D)
-    val SurfaceMid = Color(0xFF070D18)
-    val SurfaceRaised = Color(0xFF0D1A2B)
-    val Glass = Color(0xB80E1A2A)
+    // Ajusté sur écran réel : fond plus neutre, panneaux opaques (les transparences bavaient)
+    val SurfaceBase = Color(0xFF05080C)
+    val SurfaceMid = Color(0xFF080D14)
+    val SurfaceRaised = Color(0xFF0E1826)
+    val Glass = Color(0xF00C1520)
     val Cyan = Color(0xFF38E1FF)
     val CyanLight = Color(0xFF9FE8FF)
     val CyanDim = Color(0xFF0A7F96)
@@ -34,10 +35,10 @@ object DroneColors {
     val Idle = Color(0xFF5C6B7E)
     val TextPrimary = Color(0xFFE8F2F8)
     val TextSoft = Color(0xFFCFE3EF)
-    val TextMuted = Color(0xFF8FA3B5)
-    val TextFaint = Color(0xFF6F8698)
-    val StrokeHud = Color(0x3878B4D2)
-    val StrokeSoft = Color(0x2978B4D2)
+    val TextMuted = Color(0xFFA7B8C8)
+    val TextFaint = Color(0xFF8798A9)
+    val StrokeHud = Color(0x4778B4D2)
+    val StrokeSoft = Color(0x3378B4D2)
 }
 
 val Barlow = FontFamily(

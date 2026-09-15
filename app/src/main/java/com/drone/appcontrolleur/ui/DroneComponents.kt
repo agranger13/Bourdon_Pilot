@@ -70,10 +70,10 @@ fun Modifier.screenBackground() = background(DroneColors.SurfaceBase).drawBehind
     drawRect(
         Brush.radialGradient(
             0f to DroneColors.SurfaceRaised,
-            0.45f to DroneColors.SurfaceMid,
+            0.6f to DroneColors.SurfaceMid,
             1f to DroneColors.SurfaceBase,
             center = Offset(size.width / 2, 0f),
-            radius = max(size.width * 0.6f, 1f),
+            radius = max(size.width * 0.45f, 1f),
         ),
     )
 }
@@ -148,8 +148,7 @@ fun DroneButton(
 }
 
 @Composable
-fun StatusDot(color: Color, modifier: Modifier = Modifier, size: Dp = 6.dp) = Canvas(modifier.size(size)) {
-    drawCircle(color.copy(alpha = 0.3f), radius = this.size.minDimension)
+fun StatusDot(color: Color, modifier: Modifier = Modifier, size: Dp = 8.dp) = Canvas(modifier.size(size)) {
     drawCircle(color)
 }
 
@@ -280,7 +279,7 @@ fun EmergencyStopButton(onStop: () -> Unit, modifier: Modifier = Modifier) {
     Box(
         modifier = modifier
             .size(88.dp)
-            .shadow(14.dp, OctagonShape, ambientColor = DroneColors.Danger, spotColor = DroneColors.Danger)
+            .shadow(4.dp, OctagonShape)
             .background(Brush.verticalGradient(fill), OctagonShape)
             .border(3.dp, Color(0x24FFFFFF), OctagonShape)
             .semantics {

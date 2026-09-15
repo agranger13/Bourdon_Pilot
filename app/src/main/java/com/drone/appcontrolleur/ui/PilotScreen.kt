@@ -343,7 +343,7 @@ private fun Readout(letter: String, value: String, valueColor: Color = DroneColo
     Row(
         modifier = Modifier
             .clip(shape)
-            .background(Color(0xA80E1A2A))
+            .background(DroneColors.Glass)
             .border(1.dp, DroneColors.StrokeSoft, shape)
             .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.spacedBy(5.dp),
@@ -385,7 +385,8 @@ private fun ThrottleGauge(throttle: Float, modifier: Modifier) {
 @Composable
 private fun AttitudeHorizon(roll: Float, pitch: Float, modifier: Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(400.dp).alpha(0.16f)) {
+        // Traits seuls, sans aplats dégradés qui brouillaient le centre de l'écran
+        Canvas(Modifier.size(400.dp).alpha(0.22f)) {
             val r = size.minDimension / 2
             val pitchShift = pitch * 36.dp.toPx()
             clipPath(Path().apply { addOval(Rect(center, r)) }) {
@@ -394,16 +395,6 @@ private fun AttitudeHorizon(roll: Float, pitch: Float, modifier: Modifier) {
                     translate(top = pitchShift)
                 }) {
                     val ext = r * 1.5f
-                    drawRect(
-                        Brush.verticalGradient(listOf(DroneColors.Cyan.copy(alpha = 0.10f), DroneColors.Cyan.copy(alpha = 0.28f)), startY = center.y - ext, endY = center.y),
-                        topLeft = Offset(center.x - ext, center.y - ext),
-                        size = Size(2 * ext, ext),
-                    )
-                    drawRect(
-                        Brush.verticalGradient(listOf(DroneColors.Cyan.copy(alpha = 0.10f), DroneColors.CyanDim.copy(alpha = 0.05f)), startY = center.y, endY = center.y + ext),
-                        topLeft = Offset(center.x - ext, center.y),
-                        size = Size(2 * ext, ext),
-                    )
                     drawLine(DroneColors.Cyan, Offset(center.x - ext, center.y), Offset(center.x + ext, center.y), strokeWidth = 1.5.dp.toPx())
                     listOf(-0.72f to 0.32f, -0.36f to 0.19f, 0.36f to 0.19f, 0.72f to 0.32f).forEach { (dy, halfWidth) ->
                         val y = center.y + dy * r
@@ -436,8 +427,8 @@ private fun ArmedFrame() {
     Canvas(Modifier.fillMaxSize()) {
         val w = 2.dp.toPx()
         drawRect(DroneColors.Danger.copy(alpha = pulse), topLeft = Offset(w / 2, w / 2), size = Size(size.width - w, size.height - w), style = Stroke(w))
-        val glow = DroneColors.Danger.copy(alpha = 0.18f + (0.95f - pulse) * 0.2f)
-        val g = 36.dp.toPx()
+        val glow = DroneColors.Danger.copy(alpha = 0.10f + (0.95f - pulse) * 0.1f)
+        val g = 14.dp.toPx()
         drawRect(Brush.horizontalGradient(listOf(glow, Color.Transparent), endX = g), size = Size(g, size.height))
         drawRect(Brush.horizontalGradient(listOf(Color.Transparent, glow), startX = size.width - g, endX = size.width), topLeft = Offset(size.width - g, 0f), size = Size(g, size.height))
         drawRect(Brush.verticalGradient(listOf(glow, Color.Transparent), endY = g), size = Size(size.width, g))

@@ -61,27 +61,21 @@ fun Joystick(
         val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
 
         // Socle : disque, anneau pointillé, zone neutre et réticule
-        drawCircle(Brush.radialGradient(listOf(Color(0x1238E1FF), Color(0x8C0A1422)), center, radius), radius)
+        drawCircle(Color(0xFF0A121C), radius)
         drawCircle(DroneColors.StrokeHud, radius - 1.dp.toPx(), style = Stroke(2.dp.toPx()))
         drawCircle(DroneColors.StrokeHud, radius * 0.855f, style = Stroke(1.dp.toPx(), pathEffect = dash))
-        drawCircle(DroneColors.Cyan.copy(alpha = 0.05f), radius * 0.2f)
-        drawCircle(DroneColors.Cyan.copy(alpha = 0.4f), radius * 0.2f, style = Stroke(1.dp.toPx(), pathEffect = dash))
+        drawCircle(DroneColors.Cyan.copy(alpha = 0.5f), radius * 0.2f, style = Stroke(1.dp.toPx(), pathEffect = dash))
         drawLine(DroneColors.StrokeSoft, Offset(center.x, 0f), Offset(center.x, size.height))
         drawLine(DroneColors.StrokeSoft, Offset(0f, center.y), Offset(size.width, center.y))
 
-        // Manche lumineux
+        // Manche : aplat opaque et contour net, sans halo
         val knob = center + Offset(value.x * travel, -value.y * travel)
-        drawCircle(DroneColors.Cyan.copy(alpha = 0.14f), knobRadius * 1.3f, knob)
         drawCircle(
-            Brush.radialGradient(
-                listOf(Color(0x8C38E1FF), Color(0xD90E5064)),
-                center = knob + Offset(-0.16f * knobRadius, -0.32f * knobRadius),
-                radius = knobRadius * 1.2f,
-            ),
+            Brush.verticalGradient(listOf(Color(0xFF2AA7C2), Color(0xFF0C4B5D)), startY = knob.y - knobRadius, endY = knob.y + knobRadius),
             knobRadius,
             knob,
         )
-        drawCircle(Color(0xBFA0F0FF), knobRadius, knob, style = Stroke(1.5.dp.toPx()))
+        drawCircle(DroneColors.CyanLight, knobRadius, knob, style = Stroke(1.5.dp.toPx()))
         drawCircle(Color(0xFFEAFCFF), knobRadius * 0.12f, knob)
     }
 }

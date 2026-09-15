@@ -143,7 +143,7 @@ private fun SettingsCard(modifier: Modifier = Modifier, content: @Composable Col
     Column(
         modifier = modifier
             .clip(shape)
-            .background(Color(0xA80E1A2A))
+            .background(DroneColors.Glass)
             .border(1.dp, DroneColors.StrokeSoft, shape)
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp),
