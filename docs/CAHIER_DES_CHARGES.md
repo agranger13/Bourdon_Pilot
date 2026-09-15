@@ -232,7 +232,7 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 | 5 | Composant `Joystick` (multi-touch, retour au centre configurable) | Écran de démo | ✅ Fait |
 | 6 | `LinkManager` 50 Hz + écran de pilotage en **Legacy CSV** | **J0 et J1** avec le firmware actuel, sans hélices | ✅ Fait |
 | 7 | *Firmware FW-1 à FW-3* (voir SPEC_FIRMWARE §8) | Drone en binaire v1 sécurisé | ✅ Fait |
-| 8 | Maquettes **Claude Design** (connexion, pilotage désarmé/armé, alertes, paramètres, design system), puis intégration dans le thème Compose (`Theme.kt` : couleurs, typo, composants ARM / E-STOP / barre de statut) | Écrans conformes aux maquettes, logique inchangée | ⏳ À faire |
+| 8 | Maquettes **Claude Design** (connexion, pilotage désarmé/armé, alertes, paramètres, design system), puis intégration dans le thème Compose (`Theme.kt` : couleurs, typo, composants ARM / E-STOP / barre de statut) | Écrans conformes aux maquettes, logique inchangée | 🟡 Codé, à valider sur le téléphone |
 | 9 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** | ⏳ À faire |
 | 10 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** | ⏳ À faire |
 | 11 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** | ⏳ À faire |

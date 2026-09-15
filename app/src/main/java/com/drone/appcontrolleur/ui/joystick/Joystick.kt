@@ -4,16 +4,18 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.unit.dp
+import com.drone.appcontrolleur.ui.DroneColors
 import kotlin.math.min
 
 /**
@@ -30,8 +32,6 @@ fun Joystick(
 ) {
     val currentValue by rememberUpdatedState(value)
     val currentOnValueChange by rememberUpdatedState(onValueChange)
-    val baseColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.35f)
-    val knobColor = MaterialTheme.colorScheme.primary
 
     Canvas(
         modifier = modifier
@@ -55,22 +55,34 @@ fun Joystick(
                 }
             },
     ) {
+        val radius = size.minDimension / 2f
         val travel = travelRadius(size.width, size.height)
         val knobRadius = travel * KNOB_RATIO
-        drawRoundRect(
-            color = baseColor,
-            topLeft = center - Offset(travel + knobRadius, travel + knobRadius),
-            size = Size(2 * (travel + knobRadius), 2 * (travel + knobRadius)),
-            cornerRadius = CornerRadius(knobRadius),
-            style = Stroke(width = 3f),
-        )
-        drawLine(baseColor, center - Offset(travel, 0f), center + Offset(travel, 0f))
-        drawLine(baseColor, center - Offset(0f, travel), center + Offset(0f, travel))
+        val dash = PathEffect.dashPathEffect(floatArrayOf(4.dp.toPx(), 4.dp.toPx()))
+
+        // Socle : disque, anneau pointillé, zone neutre et réticule
+        drawCircle(Brush.radialGradient(listOf(Color(0x1238E1FF), Color(0x8C0A1422)), center, radius), radius)
+        drawCircle(DroneColors.StrokeHud, radius - 1.dp.toPx(), style = Stroke(2.dp.toPx()))
+        drawCircle(DroneColors.StrokeHud, radius * 0.855f, style = Stroke(1.dp.toPx(), pathEffect = dash))
+        drawCircle(DroneColors.Cyan.copy(alpha = 0.05f), radius * 0.2f)
+        drawCircle(DroneColors.Cyan.copy(alpha = 0.4f), radius * 0.2f, style = Stroke(1.dp.toPx(), pathEffect = dash))
+        drawLine(DroneColors.StrokeSoft, Offset(center.x, 0f), Offset(center.x, size.height))
+        drawLine(DroneColors.StrokeSoft, Offset(0f, center.y), Offset(size.width, center.y))
+
+        // Manche lumineux
+        val knob = center + Offset(value.x * travel, -value.y * travel)
+        drawCircle(DroneColors.Cyan.copy(alpha = 0.14f), knobRadius * 1.3f, knob)
         drawCircle(
-            color = knobColor,
-            radius = knobRadius,
-            center = center + Offset(value.x * travel, -value.y * travel),
+            Brush.radialGradient(
+                listOf(Color(0x8C38E1FF), Color(0xD90E5064)),
+                center = knob + Offset(-0.16f * knobRadius, -0.32f * knobRadius),
+                radius = knobRadius * 1.2f,
+            ),
+            knobRadius,
+            knob,
         )
+        drawCircle(Color(0xBFA0F0FF), knobRadius, knob, style = Stroke(1.5.dp.toPx()))
+        drawCircle(Color(0xFFEAFCFF), knobRadius * 0.12f, knob)
     }
 }
 

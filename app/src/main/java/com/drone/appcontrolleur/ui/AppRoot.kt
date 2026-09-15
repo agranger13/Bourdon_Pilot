@@ -1,36 +1,45 @@
 package com.drone.appcontrolleur.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
-import androidx.compose.material3.Text
+import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 
-private val screens = listOf("Connexion", "Pilotage")
+private enum class Screen { CONNECTION, PILOT, SETTINGS }
 
 @Composable
 fun AppRoot() {
-    var selected by rememberSaveable { mutableIntStateOf(0) }
-    Column(Modifier.fillMaxSize()) {
-        TabRow(selectedTabIndex = selected, modifier = Modifier.fillMaxWidth()) {
-            screens.forEachIndexed { index, title ->
-                Tab(selected = selected == index, onClick = { selected = index }, text = { Text(title) })
-            }
-        }
-        Box(Modifier.weight(1f)) {
-            when (selected) {
-                0 -> ConnectionScreen()
-                // Quitter l'onglet retire PilotScreen : l'émission s'arrête (NF-7)
-                else -> PilotScreen()
-            }
-        }
+    var screen by rememberSaveable { mutableStateOf(Screen.CONNECTION) }
+    var settingsReturn by rememberSaveable { mutableStateOf(Screen.CONNECTION) }
+    val connectionVm: ConnectionViewModel = viewModel()
+
+    fun openSettings(from: Screen) {
+        settingsReturn = from
+        screen = Screen.SETTINGS
+    }
+
+    BackHandler(enabled = screen != Screen.CONNECTION) {
+        screen = if (screen == Screen.SETTINGS) settingsReturn else Screen.CONNECTION
+    }
+
+    when (screen) {
+        Screen.CONNECTION -> ConnectionScreen(
+            onFly = { screen = Screen.PILOT },
+            onOpenSettings = { openSettings(Screen.CONNECTION) },
+            vm = connectionVm,
+        )
+        // Quitter l'écran retire PilotScreen : l'émission s'arrête (NF-7)
+        Screen.PILOT -> PilotScreen(
+            onOpenConnection = { screen = Screen.CONNECTION },
+            onLeaveFlight = {
+                connectionVm.disconnect()
+                screen = Screen.CONNECTION
+            },
+            onOpenSettings = { openSettings(Screen.PILOT) },
+        )
+        Screen.SETTINGS -> SettingsScreen(onBack = { screen = settingsReturn }, vm = connectionVm)
     }
 }
