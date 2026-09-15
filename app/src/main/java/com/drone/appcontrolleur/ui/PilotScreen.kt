@@ -402,7 +402,11 @@ private fun AttitudeHorizon(roll: Float, pitch: Float, modifier: Modifier) {
                     }
                 }
             }
-            drawCircle(DroneColors.Cyan.copy(alpha = 0.45f), r, style = Stroke(1.dp.toPx()))
+        }
+        // Contour hors du calque translucide : la bulle garde un bord net
+        Canvas(Modifier.size(400.dp)) {
+            val w = 1.5.dp.toPx()
+            drawCircle(DroneColors.Cyan.copy(alpha = 0.4f), size.minDimension / 2 - w / 2, style = Stroke(w))
         }
         // Réticule fixe
         Canvas(Modifier.width(116.dp).height(8.dp).alpha(0.5f)) {
