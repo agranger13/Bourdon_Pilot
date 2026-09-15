@@ -157,11 +157,18 @@ Chaîne ASCII `lx,ly,rx,ry,arm,emg`, sans retour à la ligne :
 
 | Champ | Axe | Conversion depuis l'app (valeur normalisée v) |
 |---|---|---|
-| `lx` | roll | `round(512 + v × 511)`, v ∈ [−1, 1] |
-| `ly` | pitch | idem (signe à valider au banc) |
-| `rx` | yaw | idem |
-| `ry` | throttle | `round(v × 1023)`, v ∈ [0, 1] |
+| `lx` | roll | `floor(511.5 + v × 511.5 + 0.5)`, v ∈ [−1, 1] (centre 512) |
+| `ly` | pitch | idem, +1 = avant (signe à valider au banc, voir SPEC_FIRMWARE P13) |
+| `rx` | yaw | idem, +1 = droite |
+| `ry` | throttle | `floor(v × 1023 + 0.5)`, v ∈ [0, 1] |
 | `arm` / `emg` | flags | `0` ou `1` |
+
+Comportement du firmware actuel, relevé dans `UDPReceiver.cpp` et `DroneController.cpp` (commit `947598d`) :
+- **Décodage** : `(raw − 511.5) / 511.5` pour les axes centrés, `raw / 1023` pour le throttle. L'encodage ci-dessus en est l'inverse exact.
+- **Zone morte firmware** : `|raw − 511| < 20` donne 0, soit ≈ ±3,9 % sans remise à l'échelle (saut de 0 à 0,038). En Legacy CSV, les petites corrections sous ce seuil sont perdues.
+- **Consignes** : roll et pitch × 30°, yaw × 180 °/s, throttle × 200/255. **Sous 20/255** (gaz < 10 %), les 4 moteurs reçoivent directement le throttle, sans PID.
+- **Verrou d'urgence au démarrage** : au boot, et après toute perte de lien (10 s sans paquet) ou tout `emg = 1`, les moteurs restent verrouillés tant qu'un paquet avec `arm = 0` n'a pas été reçu. L'app doit donc commencer par émettre désarmée (F-SEC-6), sinon ARM n'a aucun effet.
+- Format détecté par la présence d'une virgule (CSV) ou d'une accolade (JSON `{"lx":…}`). Le paquet est tronqué à 255 octets. Chaque paquet est tracé sur le port série (9600 bauds).
 
 ⚠️ Dans ce mode, le firmware actuel n'a qu'un failsafe de 10 s et ne vérifie pas les gaz à l'armement. **Mode réservé aux tests sans hélices.** L'app affiche un bandeau d'avertissement.
 

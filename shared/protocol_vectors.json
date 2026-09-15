@@ -1,0 +1,140 @@
+{
+  "crc16_ccitt_false": [
+    {
+      "ascii": "123456789",
+      "crc": 10673
+    },
+    {
+      "ascii": "",
+      "crc": 65535
+    }
+  ],
+  "command": [
+    {
+      "seq": 0,
+      "roll": 0.0,
+      "pitch": 0.0,
+      "yaw": 0.0,
+      "throttle": 0.0,
+      "arm": false,
+      "estop": false,
+      "hex": "d7110000000000000000000000008d30"
+    },
+    {
+      "seq": 1,
+      "roll": 1.0,
+      "pitch": -1.0,
+      "yaw": 0.5,
+      "throttle": 1.0,
+      "arm": true,
+      "estop": false,
+      "hex": "d7110100e80318fcf401e80301004df3"
+    },
+    {
+      "seq": 65535,
+      "roll": -0.25,
+      "pitch": 0.75,
+      "yaw": -1.0,
+      "throttle": 0.049,
+      "arm": false,
+      "estop": true,
+      "hex": "d711ffff06ffee0218fc31000200b95a"
+    },
+    {
+      "seq": 1234,
+      "roll": 2.0,
+      "pitch": -3.0,
+      "yaw": 0.0005,
+      "throttle": -0.5,
+      "arm": true,
+      "estop": true,
+      "hex": "d711d204e80318fc010000000300d3a1"
+    }
+  ],
+  "legacy_csv": [
+    {
+      "roll": 0.0,
+      "pitch": 0.0,
+      "yaw": 0.0,
+      "throttle": 0.0,
+      "arm": false,
+      "estop": false,
+      "text": "512,512,512,0,0,0"
+    },
+    {
+      "roll": 1.0,
+      "pitch": -1.0,
+      "yaw": 0.5,
+      "throttle": 1.0,
+      "arm": true,
+      "estop": false,
+      "text": "1023,0,767,1023,1,0"
+    },
+    {
+      "roll": -0.25,
+      "pitch": 0.75,
+      "yaw": -1.0,
+      "throttle": 0.049,
+      "arm": false,
+      "estop": true,
+      "text": "384,895,0,50,0,1"
+    },
+    {
+      "roll": 2.0,
+      "pitch": -3.0,
+      "yaw": 0.0005,
+      "throttle": -0.5,
+      "arm": true,
+      "estop": true,
+      "text": "1023,0,512,0,1,1"
+    }
+  ],
+  "hello": [
+    {
+      "seq": 0,
+      "hex": "d7130000dd67"
+    },
+    {
+      "seq": 42,
+      "hex": "d7132a00f08e"
+    }
+  ],
+  "telemetry": [
+    {
+      "seq": 10,
+      "ackSeq": 9,
+      "vbatMv": 3950,
+      "rollCdeg": 1234,
+      "pitchCdeg": -567,
+      "yawRateDdps": -150,
+      "state": 1,
+      "statusFlags": 1,
+      "rssi": -55,
+      "loopHzHalf": 125,
+      "hex": "d7120a0009006e0fd204c9fd6aff0101c97db79b"
+    },
+    {
+      "seq": 65535,
+      "ackSeq": 0,
+      "vbatMv": 0,
+      "rollCdeg": -18000,
+      "pitchCdeg": 9000,
+      "yawRateDdps": 0,
+      "state": 2,
+      "statusFlags": 30,
+      "rssi": 0,
+      "loopHzHalf": 0,
+      "hex": "d712ffff00000000b0b928230000021e0000c1a8"
+    }
+  ],
+  "hello_ack": [
+    {
+      "protoVersion": 1,
+      "fwMajor": 0,
+      "fwMinor": 3,
+      "fwPatch": 1,
+      "boardId": 1,
+      "hex": "d71301000301010047f5"
+    }
+  ]
+}

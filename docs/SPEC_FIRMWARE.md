@@ -9,8 +9,17 @@ Document de travail pour faire évoluer le firmware **`DroneDelivery/super-octo-
 
 ## 1. État actuel (commit `947598d`)
 
+> Relu le 2026-09-15. La copie de travail contient des modifications **non commitées** dans `UDPReceiver.cpp` (trace de chaque paquet, `hasReceived`), `Hostpot.cpp` (trace de démarrage de l'AP) et `DroneLogger.h` (nombre de clients de l'AP). Les numéros de ligne ci-dessous correspondent à cette copie de travail.
+
 | Élément | Existant |
 |---|---|
+| Cartes | XIAO ESP32-S3 (`-e xiao-esp32s3`) et FireBeetle 2 ESP32-S3 (`-e firebeetle-esps3`), brochage dans `include/BoardPins.h` |
+| Décodage CSV | `(raw − 511.5) / 511.5`, zone morte `|raw − 511| < 20` ; throttle `raw / 1023` |
+| Consignes | roll/pitch × 30°, yaw × 180 °/s, throttle × 200 (sur 255) ; sous 20/255, moteurs = throttle sans PID |
+| Mixage | M1 = T − R − P − Y, M2 = T + R − P + Y, M3 = T + R + P − Y, M4 = T − R + P + Y (M1 avant gauche, sens horaire) |
+| Attitude | `roll = atan2(ay, az)`, `pitch = atan2(−ax, √(ay² + az²))`, `dt` en `millis()` |
+| Verrou d'urgence | Actif au boot ; relâché au premier paquet avec `arm = 0` |
+| Logs | Série 9600 bauds, rapport toutes les 10 s + trace de chaque paquet |
 | Wi-Fi | Point d'accès `DRONE_IOT` / `dronepassword`, IP `192.168.4.1` |
 | Liaison | UDP, port **4210**, réception seule (pas de télémétrie) |
 | Format | Texte CSV `lx,ly,rx,ry,arm,emg` (0–1023, centre 512) ou JSON équivalent |
@@ -40,8 +49,28 @@ Classés par gravité. **Bloquant** = à corriger avant de voler avec l'app.
 | P10 | 🟡 Moyen | `src/motor/DroneController.cpp:11` | `armed(true)` dans le constructeur | Initialiser à `false` |
 | P11 | 🟡 Moyen | Protocole | Ni séquence, ni CRC, ni version, ni télémétrie | Nouveau protocole (§4) |
 | P12 | 🟢 Mineur | `src/main.cpp` | SSID et mot de passe en dur, mot de passe par défaut | §3 |
+| P13 | 🟠 Majeur | `DroneController.cpp:131-161` + `GyroScoper.cpp:170-185` | Conventions de signe non documentées entre joystick, IMU et mixage (analyse ci-dessous) : la boucle de lacet semble inversée | Convention fixée + test au banc (§6.5) |
+| P14 | 🟡 Moyen | `src/sensor/GyroScoper.cpp:50` | MPU-6050 absent : `while (true)` infini après le démarrage de l'AP. L'AP est visible mais le drone ne traite plus aucun paquet, sans que l'app puisse savoir pourquoi | Continuer en `DISARMED` avec le bit `IMU OK` à 0 |
+| P15 | 🟢 Mineur | `GyroScoper.cpp:144` | `dt` du filtre en `millis()` : résolution 1 ms pour ~10 ms de période, soit ±10 % d'erreur d'intégration | `micros()` (§6.2) |
+| P16 | 🟢 Mineur | `DroneController.h:87` + `DroneLogger.h:78` | `getYawRate()` renvoie des rad/s, affichés comme des °/s | Convertir dans le getter |
 
 > À vérifier au banc (sans hélices) : les signes du mixage moteur (`DroneController.cpp`, calcul de motor1Speed…). Incliner le drone à la main vers l'avant doit **accélérer les moteurs avant**.
+
+### Analyse des signes (P13)
+
+Hypothèse : MPU-6050 monté à plat, composants vers le haut, **X vers l'avant**, donc Y vers la gauche et Z vers le haut (repère direct). Sortie PID positive quand `consigne > mesure`.
+
+| Axe | Mesure positive | Sortie PID positive | Effet | Boucle |
+|---|---|---|---|---|
+| Pitch | nez vers le bas (`−ax`) | M3, M4 (arrière) accélèrent | nez vers le bas : la mesure augmente | ✅ stable ; consigne + = avant |
+| Roll | côté droit vers le bas (`ay`) | M2, M3 (droite) accélèrent | côté droit monte : la mesure diminue | ❌ inversée si X est vers l'avant |
+| Yaw | rotation anti-horaire vue de dessus (`gz`) | M2, M4 (hélices anti-horaires) accélèrent | couple de réaction horaire : la mesure diminue | ❌ inversée quel que soit le montage à plat |
+
+Si le capteur est tourné de 180° (X vers l'arrière), c'est le roll qui devient stable et le pitch qui s'inverse. Le lacet, lui, reste inversé dans les deux cas, sauf si le sens de rotation des hélices est l'inverse de celui indiqué dans `main.cpp`.
+
+**Convention imposée par l'app** (mode CSV comme binaire) : roll + = droite, pitch + = avant (nez vers le bas), yaw + = rotation horaire vue de dessus, throttle + = monter. C'est au firmware d'adapter ses signes pour la respecter.
+
+**Décision (2026-09-15)** : le MPU-6050 n'étant pas encore fixé, il sera monté **à plat, composants vers le haut, axe X (sérigraphie) vers l'avant**. C'est le repère standard, et le pitch est déjà correct avec lui. Aucune orientation à plat ne corrige à la fois roll et lacet : il faudra donc, dans le firmware, **inverser la mesure de roll et celle de `yawRate`** avant le PID. Correction à confirmer par le test du §6.5 avant tout vol.
 
 ---
 
@@ -195,6 +224,20 @@ En cas de refus : lever le bit `arm refusé` dans la télémétrie, pour que l'a
 ### 6.4 Logs
 - Supprimer la trace par paquet. Les logs série périodiques sont à ≤ 1 Hz.
 - Macro `DRONE_DEBUG` (flag de build) pour activer les traces détaillées.
+
+### 6.5 Validation des signes (P13), sans hélices
+Chaque réponse attendue découle de la convention du §2. On arme avec un throttle juste au-dessus de 20/255 (PID actif), puis :
+
+| Action | Moteurs qui doivent accélérer |
+|---|---|
+| Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose |
+| Incliner à la main le côté droit vers le bas | M2, M3 (droite) |
+| Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) |
+| Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) |
+| Pousser le joystick droit vers la droite | M1, M4 (gauche) |
+| Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) |
+
+Corriger en inversant la mesure concernée (`roll`, `pitch` ou `yawRate`) avant le PID, pas le mixage. Consigner le montage réel du MPU-6050 dans le README.
 
 ---
 
