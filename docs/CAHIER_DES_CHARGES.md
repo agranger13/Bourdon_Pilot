@@ -221,19 +221,22 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 
 ## 8. Plan de réalisation
 
-| Étape | Contenu | Livrable |
-|---|---|---|
-| 1 | Projet Android Studio (Compose, minSdk 29, paysage) + Git | Squelette qui compile |
-| 2 | `protocol/` : `LegacyCsvCodec` et `BinaryV1Codec`, CRC, tests + `protocol_vectors.json` | Tests verts |
-| 3 | Simulateur Python (CSV et binaire) | `tools/drone_sim.py` |
-| 4 | `WifiConnector` : connexion auto à `DRONE_IOT` + `bindSocket` | Connexion validée sur le téléphone |
-| 5 | Composant `Joystick` (multi-touch, retour au centre configurable) | Écran de démo |
-| 6 | `LinkManager` 50 Hz + écran de pilotage en **Legacy CSV** | **J0 et J1** avec le firmware actuel, sans hélices |
-| 7 | *Firmware FW-1 à FW-3* (voir SPEC_FIRMWARE §8) | Drone en binaire v1 sécurisé |
-| 8 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** |
-| 9 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** |
-| 10 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** |
-| 11 | Manette Bluetooth, haptique | **J6** |
+> **Avancement (2026-09-15)** : étapes 1 à 7 terminées. Prochaine étape : 8.
+
+| Étape | Contenu | Livrable | État |
+|---|---|---|---|
+| 1 | Projet Android Studio (Compose, minSdk 29, paysage) + Git | Squelette qui compile | ✅ Fait |
+| 2 | `protocol/` : `LegacyCsvCodec` et `BinaryV1Codec`, CRC, tests + `protocol_vectors.json` | Tests verts | ✅ Fait |
+| 3 | Simulateur Python (CSV et binaire) | `tools/drone_sim.py` | ✅ Fait |
+| 4 | `WifiConnector` : connexion auto à `DRONE_IOT` + `bindSocket` | Connexion validée sur le téléphone | ✅ Fait |
+| 5 | Composant `Joystick` (multi-touch, retour au centre configurable) | Écran de démo | ✅ Fait |
+| 6 | `LinkManager` 50 Hz + écran de pilotage en **Legacy CSV** | **J0 et J1** avec le firmware actuel, sans hélices | ✅ Fait |
+| 7 | *Firmware FW-1 à FW-3* (voir SPEC_FIRMWARE §8) | Drone en binaire v1 sécurisé | ✅ Fait |
+| 8 | Maquettes **Claude Design** (connexion, pilotage désarmé/armé, alertes, paramètres, design system), puis intégration dans le thème Compose (`Theme.kt` : couleurs, typo, composants ARM / E-STOP / barre de statut) | Écrans conformes aux maquettes, logique inchangée | ⏳ À faire |
+| 9 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** | ⏳ À faire |
+| 10 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** | ⏳ À faire |
+| 11 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** | ⏳ À faire |
+| 12 | Manette Bluetooth, haptique | **J6** | ⏳ À faire |
 
 ---
 
