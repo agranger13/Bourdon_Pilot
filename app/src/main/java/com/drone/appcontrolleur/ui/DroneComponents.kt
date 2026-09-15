@@ -42,6 +42,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -52,6 +53,9 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.nativeCanvas
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.onClick
@@ -66,10 +70,31 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 
 /**
- * Fond des écrans : aplat. Le dégradé radial de la maquette donnait des halos et des paliers
- * visibles sur écran Android (8 bits par couleur sur des teintes très sombres).
+ * Fond des écrans : dégradé radial elliptique de la maquette (120 % × 90 %, centré en haut).
+ * Tramé : sans tramage, des teintes aussi sombres forment des paliers visibles sur un écran 8 bits.
  */
-fun Modifier.screenBackground() = background(DroneColors.SurfaceMid)
+fun Modifier.screenBackground() = drawWithCache {
+    val rx = size.width * 1.2f
+    val ry = size.height * 0.9f
+    val paint = android.graphics.Paint().apply {
+        isDither = true
+        shader = android.graphics.RadialGradient(
+            0f, 0f, max(rx, 1f),
+            intArrayOf(DroneColors.SurfaceRaised.toArgb(), DroneColors.SurfaceMid.toArgb(), DroneColors.SurfaceBase.toArgb()),
+            floatArrayOf(0f, 0.45f, 1f),
+            android.graphics.Shader.TileMode.CLAMP,
+        )
+    }
+    onDrawBehind { drawIntoCanvas { canvas ->
+        val native = canvas.nativeCanvas
+        native.save()
+        // Ellipse : cercle de rayon rx écrasé verticalement
+        native.translate(size.width / 2, 0f)
+        native.scale(1f, ry / rx)
+        native.drawRect(-size.width / 2, 0f, size.width / 2, size.height * rx / ry, paint)
+        native.restore()
+    } }
+}
 
 @Composable
 fun GlassPanel(
