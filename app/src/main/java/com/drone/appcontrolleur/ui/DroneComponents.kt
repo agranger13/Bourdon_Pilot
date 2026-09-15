@@ -54,6 +54,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.drawIntoCanvas
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -80,8 +81,8 @@ fun Modifier.screenBackground() = drawWithCache {
         isDither = true
         shader = android.graphics.RadialGradient(
             0f, 0f, max(rx, 1f),
-            intArrayOf(DroneColors.SurfaceRaised.toArgb(), DroneColors.SurfaceMid.toArgb(), DroneColors.SurfaceBase.toArgb()),
-            floatArrayOf(0f, 0.45f, 1f),
+            HALO_STOPS.map { t -> lerp(DroneColors.SurfaceRaised, DroneColors.SurfaceBase, smoothstep(t)).toArgb() }.toIntArray(),
+            HALO_STOPS,
             android.graphics.Shader.TileMode.CLAMP,
         )
     }
@@ -95,6 +96,11 @@ fun Modifier.screenBackground() = drawWithCache {
         native.restore()
     } }
 }
+
+// Halo en courbe douce (smoothstep) échantillonnée finement : pas de cassure visible entre deux paliers
+private val HALO_STOPS = FloatArray(16) { it / 15f }
+
+private fun smoothstep(t: Float) = t * t * (3f - 2f * t)
 
 @Composable
 fun GlassPanel(
