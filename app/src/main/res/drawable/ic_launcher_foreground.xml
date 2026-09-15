@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Quadricoptère de l'écran de connexion, dans la zone sûre de 66 dp -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Bras -->
+    <path
+        android:pathData="M39,39L69,69M69,39L39,69"
+        android:strokeWidth="3"
+        android:strokeColor="#8038E1FF"
+        android:strokeLineCap="round" />
+    <!-- Hélices avant -->
+    <path
+        android:pathData="M30,39a9,9 0,1 0,18 0a9,9 0,1 0,-18 0M60,39a9,9 0,1 0,18 0a9,9 0,1 0,-18 0"
+        android:fillColor="#2638E1FF"
+        android:strokeWidth="3"
+        android:strokeColor="#FF38E1FF" />
+    <!-- Hélices arrière -->
+    <path
+        android:pathData="M30,69a9,9 0,1 0,18 0a9,9 0,1 0,-18 0M60,69a9,9 0,1 0,18 0a9,9 0,1 0,-18 0"
+        android:fillColor="#1438E1FF"
+        android:strokeWidth="3"
+        android:strokeColor="#9938E1FF" />
+    <!-- Corps -->
+    <path
+        android:pathData="M48,47H60A4,4 0,0 1,64 51V57A4,4 0,0 1,60 61H48A4,4 0,0 1,44 57V51A4,4 0,0 1,48 47Z"
+        android:fillColor="#FF0A3C4C"
+        android:strokeWidth="2"
+        android:strokeColor="#FFA0F0FF" />
+    <!-- Voyant : lien établi -->
+    <path
+        android:pathData="M51,54a3,3 0,1 0,6 0a3,3 0,1 0,-6 0"
+        android:fillColor="#FF38D98A" />
+</vector>
