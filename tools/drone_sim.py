@@ -161,7 +161,9 @@ def main():
         if drone.pilot and now - last_tel >= TELEMETRY_PERIOD_S:
             sock.sendto(drone.telemetry(), drone.pilot)
             last_tel = now
-        if now - last_log >= LOG_PERIOD_S:
+        if now - last_log >= LOG_PERIOD_S and drone.received + drone.errors == 0:
+            last_log = now  # silencieux sans trafic
+        elif now - last_log >= LOG_PERIOD_S:
             csv = getattr(drone, "_csv_last", None)
             if csv:
                 print(f"[CSV] {csv}  paquets/s={drone.received} erreurs={drone.errors}")
