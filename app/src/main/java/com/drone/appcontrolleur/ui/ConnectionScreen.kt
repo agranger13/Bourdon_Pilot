@@ -92,7 +92,7 @@ fun ConnectionScreen(
                     .weight(0.58f)
                     .fillMaxHeight()
                     .verticalScroll(rememberScrollState())
-                    .padding(start = 8.dp, end = 40.dp, top = 44.dp, bottom = 16.dp),
+                    .padding(start = 8.dp, end = 40.dp, top = 36.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Column {
@@ -142,16 +142,10 @@ fun ConnectionScreen(
                     DroneButton("CONNEXION MANUELLE", { context.openWifiSettings() }, Modifier.weight(1f), ButtonKind.SECONDARY, fontSize = 14.sp)
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        "Connexion manuelle : rejoindre ${settings.ssid} dans Android, puis",
-                        style = DroneType.body(10.sp, DroneColors.TextFaint, FontWeight.Normal),
-                        modifier = Modifier.weight(1f),
-                    )
-                    DroneButton("UTILISER LE WI-FI ACTUEL", vm::useCurrentWifi, kind = ButtonKind.SECONDARY, height = 34.dp, fontSize = 10.sp)
-                    if (wifi != WifiState.Idle) {
-                        DroneButton("DÉCONNECTER", vm::disconnect, kind = ButtonKind.SECONDARY, height = 34.dp, fontSize = 10.sp)
-                    }
+                // Après une connexion manuelle dans les réglages Android
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    DroneButton("UTILISER LE WI-FI ACTUEL", vm::useCurrentWifi, Modifier.weight(1f), ButtonKind.SECONDARY, height = 36.dp, fontSize = 11.sp)
+                    DroneButton("DÉCONNECTER", vm::disconnect, Modifier.weight(1f), ButtonKind.SECONDARY, enabled = wifi != WifiState.Idle, height = 36.dp, fontSize = 11.sp)
                 }
             }
         }
