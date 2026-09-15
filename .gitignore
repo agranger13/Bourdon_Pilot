@@ -1,0 +1,16 @@
+# Claude Code (réglages locaux)
+.claude/settings.local.json
+
+# Android / Gradle
+.gradle/
+build/
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python (simulateur)
+__pycache__/
+.venv/
