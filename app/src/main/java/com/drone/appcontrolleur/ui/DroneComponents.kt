@@ -65,18 +65,11 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
 import kotlin.math.max
 
-/** Fond des écrans : dégradé radial depuis le haut (surface.raised vers surface.base). */
-fun Modifier.screenBackground() = background(DroneColors.SurfaceBase).drawBehind {
-    drawRect(
-        Brush.radialGradient(
-            0f to DroneColors.SurfaceRaised,
-            0.6f to DroneColors.SurfaceMid,
-            1f to DroneColors.SurfaceBase,
-            center = Offset(size.width / 2, 0f),
-            radius = max(size.width * 0.45f, 1f),
-        ),
-    )
-}
+/**
+ * Fond des écrans : aplat. Le dégradé radial de la maquette donnait des halos et des paliers
+ * visibles sur écran Android (8 bits par couleur sur des teintes très sombres).
+ */
+fun Modifier.screenBackground() = background(DroneColors.SurfaceMid)
 
 @Composable
 fun GlassPanel(
