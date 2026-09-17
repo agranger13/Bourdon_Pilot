@@ -55,6 +55,14 @@ class ArmSupervisorTest {
     }
 
     @Test
+    fun refusalFlagWithImuFaultBlamesImu() {
+        val sup = ArmSupervisor()
+        val out = sup.onLink(true, active(FlightState.DISARMED, DroneMessage.Telemetry.STATUS_ARM_REFUSED_THROTTLE), 0)
+        assertEquals(Action.DISARM, out.action)
+        assertEquals("Armement refusé par le drone : IMU absente ou en défaut", out.message)
+    }
+
+    @Test
     fun unconfirmedArmTimesOutWithReason() {
         val sup = ArmSupervisor(confirmTimeoutMs = 1000)
         sup.onLink(false, active(FlightState.DISARMED), 0)

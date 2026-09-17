@@ -66,11 +66,12 @@ class ArmSupervisor(private val confirmTimeoutMs: Long = CONFIRM_TIMEOUT_MS) {
         /** Délai laissé au drone pour confirmer l'armement (télémétrie à 10 Hz). */
         const val CONFIRM_TIMEOUT_MS = 1000L
 
+        /** Le firmware lève le bit « arm refusé » pour tout refus : les causes explicites passent d'abord. */
         fun refusalReason(t: DroneMessage.Telemetry) = when {
-            t.armRefusedThrottle -> "gaz trop hauts"
             t.calibrating -> "calibration en cours"
             !t.imuOk -> "IMU absente ou en défaut"
             t.batteryCritical -> "batterie critique"
+            t.armRefusedThrottle -> "gaz trop hauts"
             else -> "raison inconnue"
         }
     }
