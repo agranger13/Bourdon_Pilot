@@ -225,6 +225,27 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 > Étape 10 : FW-5 fait, HUD télémétrie fait côté app ; reste la batterie (FW-6, câblage).
 > 🚨 **Avant l'étape 11 (premier vol)** : dérouler les 6 tests de signes de SPEC_FIRMWARE §6.5, dont 5 ne sont pas encore faits.
 
+### Point de reprise (fin de séance du 2026-09-17)
+
+**Fait et validé sur le drone** : liaison binaire v1 (HELLO, télémétrie 10 Hz, état confirmé,
+failsafe), soit le jalon J2. Firmware jusqu'à FW-5 (boucle 250 Hz, IMU permanente, calibration,
+PID à `dt` mesuré).
+
+**Fait, pas encore vérifié sur le drone** : le HUD de télémétrie de l'app (commit `4c0f66d`,
+installé sur le téléphone) — horizon sur l'attitude mesurée avec lecture en degrés, barres de
+signal sur le RSSI, perte de commandes via `ackSeq`, fréquence de boucle. À confirmer en
+inclinant le drone à la main : **si l'horizon part dans le mauvais sens, c'est une convention de
+signes à corriger côté firmware**.
+
+**À faire à la reprise, dans cet ordre :**
+1. Vérifier le HUD sur le drone (horizon, RSSI, perte, boucle).
+2. Dérouler les **6 tests de signes** de SPEC_FIRMWARE §6.5 (5 restent à faire, roulis et lacet
+   en priorité) et la dérive d'attitude à plat sur plusieurs minutes. Bloquant avant tout vol.
+3. FW-6 : câblage du pont diviseur sur D10/GPIO9 puis mesure batterie. L'app est déjà prête
+   (jauge, seuils 3,50 V et 3,30 V, alertes avec vibration), elle les affichera dès que
+   `vbatMv` ne sera plus nul. Cela terminera l'étape 10 et le jalon J3.
+4. Ensuite seulement : FW-7, premier vol avec hélices.
+
 | Étape | Contenu | Livrable | État |
 |---|---|---|---|
 | 1 | Projet Android Studio (Compose, minSdk 29, paysage) + Git | Squelette qui compile | ✅ Fait |
