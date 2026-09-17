@@ -221,7 +221,7 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 
 ## 8. Plan de réalisation
 
-> **Avancement (2026-09-17)** : étapes 1 à 8 terminées ; étape 9 codée côté app, FW-4 fait (validation au banc à faire). Prochaine étape : 10.
+> **Avancement (2026-09-17)** : étapes 1 à 9 terminées, **J2 validé au banc** (sans hélices). Prochaine étape : 10.
 
 | Étape | Contenu | Livrable | État |
 |---|---|---|---|
@@ -233,7 +233,7 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 | 6 | `LinkManager` 50 Hz + écran de pilotage en **Legacy CSV** | **J0 et J1** avec le firmware actuel, sans hélices | ✅ Fait |
 | 7 | *Firmware FW-1 à FW-3* (voir SPEC_FIRMWARE §8) | Drone en binaire v1 sécurisé | ✅ Fait |
 | 8 | Maquettes **Claude Design** (connexion, pilotage désarmé/armé, alertes, paramètres, design system), puis intégration dans le thème Compose (`Theme.kt` : couleurs, typo, composants ARM / E-STOP / barre de statut) | Écrans conformes aux maquettes, logique inchangée | ✅ Fait |
-| 9 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** | 🟡 Codé et testé au simulateur ; FW-4 fait, **validation sur le drone à faire** |
+| 9 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** | ✅ Fait |
 | 10 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** | ⏳ À faire |
 | 11 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** | ⏳ À faire |
 | 12 | Manette Bluetooth, haptique | **J6** | ⏳ À faire |
