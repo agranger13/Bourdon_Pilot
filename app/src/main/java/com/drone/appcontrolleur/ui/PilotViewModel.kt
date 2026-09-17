@@ -2,11 +2,15 @@ package com.drone.appcontrolleur.ui
 
 import android.app.Application
 import android.net.Network
+import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.drone.appcontrolleur.DroneApp
 import com.drone.appcontrolleur.control.ArmResult
+import com.drone.appcontrolleur.control.ArmSupervisor
 import com.drone.appcontrolleur.control.ControlState
+import com.drone.appcontrolleur.link.DroneLink
+import com.drone.appcontrolleur.link.DronePhase
 import com.drone.appcontrolleur.link.LinkManager
 import com.drone.appcontrolleur.link.LinkSettings
 import com.drone.appcontrolleur.link.LinkStats
@@ -29,6 +33,8 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
     val wifiState: StateFlow<WifiState> = container.wifi.state
     val settings: StateFlow<LinkSettings> = container.settings
     val stats: StateFlow<LinkStats> = linkManager.stats
+    val drone: StateFlow<DroneLink> = linkManager.drone
+    private val supervisor = ArmSupervisor()
 
     private val _control = MutableStateFlow(ControlState())
     val control: StateFlow<ControlState> = _control.asStateFlow()
@@ -69,7 +75,17 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
                     }
                 }
         }
+        viewModelScope.launch {
+            drone.collect { link ->
+                val outcome = supervisor.onLink(_control.value.armed, link, SystemClock.elapsedRealtime())
+                if (outcome.action != ArmSupervisor.Action.NONE) _control.update(outcome.action.apply)
+                outcome.message?.let { _message.value = it }
+            }
+        }
     }
+
+    /** Binaire v1 : armement possible seulement si le drone répond. */
+    private fun linkUp() = _sending.value && drone.value.phase.let { it == DronePhase.ACTIVE || it == DronePhase.UNCONFIRMED }
 
     fun setActive(value: Boolean) {
         active.value = value
@@ -82,8 +98,8 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
     fun arm() {
         var result = ArmResult.ARMED
         _control.update { state ->
-            result = state.armResult(linkUp = _sending.value)
-            state.tryArm(linkUp = _sending.value)
+            result = state.armResult(linkUp = linkUp())
+            state.tryArm(linkUp = linkUp())
         }
         _message.value = when (result) {
             ArmResult.ARMED -> null

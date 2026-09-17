@@ -53,9 +53,12 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drone.appcontrolleur.control.ControlState
+import com.drone.appcontrolleur.link.DroneLink
+import com.drone.appcontrolleur.link.DronePhase
 import com.drone.appcontrolleur.link.LinkStats
 import com.drone.appcontrolleur.link.ProtocolType
 import com.drone.appcontrolleur.link.WifiState
+import com.drone.appcontrolleur.protocol.FlightState
 import com.drone.appcontrolleur.ui.joystick.Joystick
 import com.drone.appcontrolleur.ui.joystick.JoystickMath
 import kotlin.math.roundToInt
@@ -74,6 +77,7 @@ fun PilotScreen(
     val stats by vm.stats.collectAsState()
     val sending by vm.sending.collectAsState()
     val message by vm.message.collectAsState()
+    val drone by vm.drone.collectAsState()
 
     // F-SEC-4 / NF-7 : émission uniquement écran visible et app au premier plan
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -95,7 +99,9 @@ fun PilotScreen(
     // Un retour arrière accidentel quitterait l'écran et couperait les moteurs en vol
     BackHandler(enabled = control.armed) {}
 
-    val canArm = sending && !control.estop && control.throttle <= ControlState.ARM_THROTTLE_MAX
+    // Binaire v1 : il faut que le drone réponde (HELLO_ACK ou télémétrie)
+    val droneReady = drone.phase == DronePhase.ACTIVE || drone.phase == DronePhase.UNCONFIRMED
+    val canArm = sending && droneReady && !control.estop && control.throttle <= ControlState.ARM_THROTTLE_MAX
     val armMode = when {
         control.estop -> ArmMode.ESTOP
         control.armed -> ArmMode.ARMED
@@ -106,16 +112,23 @@ fun PilotScreen(
         ArmMode.ESTOP -> "Appuyer pour déverrouiller"
         ArmMode.ARMED -> "Moteurs actifs"
         ArmMode.READY -> "Maintenir pour armer"
-        ArmMode.UNAVAILABLE -> if (sending) "Gaz à zéro requis" else "Lien requis"
+        ArmMode.UNAVAILABLE -> when {
+            !sending -> "Lien requis"
+            drone.phase == DronePhase.HANDSHAKE -> "Attente du drone"
+            drone.phase == DronePhase.NO_RESPONSE -> "Le drone ne répond pas"
+            drone.phase == DronePhase.INCOMPATIBLE -> "Protocole incompatible"
+            else -> "Gaz à zéro requis"
+        }
     }
 
     Box(Modifier.fillMaxSize().screenBackground()) {
         AttitudeHorizon(control.roll, control.pitch, Modifier.align(Alignment.Center))
         if (control.armed) ArmedFrame()
 
-        LinkPanel(wifi, sending, stats, Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 10.dp))
+        LinkPanel(wifi, sending, stats, drone, Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 10.dp))
         StatusPanel(
             protocol = settings.protocol,
+            drone = drone,
             settingsEnabled = !control.armed,
             onOpenSettings = onOpenSettings,
             modifier = Modifier.align(Alignment.TopEnd).padding(end = 14.dp, top = 10.dp),
@@ -128,7 +141,12 @@ fun PilotScreen(
         val badgeModifier = Modifier.align(Alignment.TopCenter).padding(top = 104.dp)
         when {
             control.estop -> Pill("E-STOP VERROUILLÉ", DroneColors.Warn, badgeModifier, DroneColors.WarnLight)
-            control.armed -> Pill("ARMÉ", DroneColors.Danger, badgeModifier, DroneColors.DangerLight)
+            // F-TEL-1 : « ARMÉ » seulement une fois confirmé par la télémétrie
+            control.armed -> when (drone.telemetry?.state) {
+                FlightState.ARMED -> Pill("ARMÉ", DroneColors.Danger, badgeModifier, DroneColors.DangerLight)
+                null -> Pill("ARMÉ · NON CONFIRMÉ", DroneColors.Danger, badgeModifier, DroneColors.DangerLight)
+                else -> Pill("ARMEMENT…", DroneColors.Warn, badgeModifier, DroneColors.WarnLight)
+            }
         }
 
         var dismissed by remember(message) { mutableStateOf(false) }
@@ -194,7 +212,10 @@ fun PilotScreen(
 private data class LinkView(val color: Color, val text: String, val bars: Int)
 
 // Barres : qualité d'émission tant que le RSSI n'est pas remonté par la télémétrie (étape 10)
-private fun linkView(wifi: WifiState, sending: Boolean, stats: LinkStats) = when {
+private fun linkView(wifi: WifiState, sending: Boolean, stats: LinkStats, drone: DroneLink) = when {
+    sending && drone.phase == DronePhase.HANDSHAKE -> LinkView(DroneColors.Cyan, "Attente HELLO…", 2)
+    sending && drone.phase == DronePhase.NO_RESPONSE -> LinkView(DroneColors.Danger, "Drone muet", 1)
+    sending && drone.phase == DronePhase.INCOMPATIBLE -> LinkView(DroneColors.Danger, "Incompatible", 0)
     sending && stats.sendErrors > 0 -> LinkView(DroneColors.Warn, "Lien dégradé", 2)
     sending -> LinkView(DroneColors.Ok, "Connecté", 4)
     wifi is WifiState.Connected -> LinkView(DroneColors.Cyan, "Démarrage…", 3)
@@ -204,8 +225,8 @@ private fun linkView(wifi: WifiState, sending: Boolean, stats: LinkStats) = when
 }
 
 @Composable
-private fun LinkPanel(wifi: WifiState, sending: Boolean, stats: LinkStats, modifier: Modifier) {
-    val link = linkView(wifi, sending, stats)
+private fun LinkPanel(wifi: WifiState, sending: Boolean, stats: LinkStats, drone: DroneLink, modifier: Modifier) {
+    val link = linkView(wifi, sending, stats, drone)
     GlassPanel(modifier.height(48.dp)) {
         Row(
             modifier = Modifier.padding(horizontal = 12.dp).align(Alignment.Center),
@@ -239,7 +260,7 @@ private fun LinkPanel(wifi: WifiState, sending: Boolean, stats: LinkStats, modif
 }
 
 @Composable
-private fun StatusPanel(protocol: ProtocolType, settingsEnabled: Boolean, onOpenSettings: () -> Unit, modifier: Modifier) {
+private fun StatusPanel(protocol: ProtocolType, drone: DroneLink, settingsEnabled: Boolean, onOpenSettings: () -> Unit, modifier: Modifier) {
     GlassPanel(modifier.height(48.dp)) {
         Row(
             modifier = Modifier.padding(start = 12.dp, end = 4.dp).align(Alignment.Center),
@@ -253,11 +274,37 @@ private fun StatusPanel(protocol: ProtocolType, settingsEnabled: Boolean, onOpen
                 Text("NON MESURÉE", style = DroneType.caps(7.sp, tracking = 0.14f))
             }
             PanelDivider()
+            val (stateText, stateColor) = droneStateView(drone)
+            Column {
+                Text("DRONE", style = DroneType.caps(8.sp, tracking = 0.14f))
+                Text(stateText, style = DroneType.mono(11.sp, stateColor), maxLines = 1)
+            }
+            PanelDivider()
             when (protocol) {
                 ProtocolType.BINARY_V1 -> Pill(protocol.label, DroneColors.Cyan)
                 ProtocolType.LEGACY_CSV -> Pill(protocol.label, DroneColors.Warn)
             }
             GearButton(onOpenSettings, enabled = settingsEnabled)
+        }
+    }
+}
+
+/** État confirmé par le drone (F-TEL-1). */
+private fun droneStateView(drone: DroneLink): Pair<String, Color> {
+    val telemetry = drone.telemetry
+    return when {
+        drone.phase == DronePhase.IDLE -> "—" to DroneColors.Idle
+        drone.phase == DronePhase.UNCONFIRMED -> "SANS RETOUR" to DroneColors.Idle
+        drone.phase == DronePhase.HANDSHAKE -> "HELLO…" to DroneColors.Cyan
+        drone.phase == DronePhase.INCOMPATIBLE -> "INCOMPATIBLE" to DroneColors.Danger
+        drone.phase == DronePhase.NO_RESPONSE -> "MUET" to DroneColors.Danger
+        telemetry == null -> "NON CONFIRMÉ" to DroneColors.TextMuted
+        else -> when (telemetry.state) {
+            FlightState.DISARMED -> "DÉSARMÉ" to DroneColors.Ok
+            FlightState.ARMED -> "ARMÉ" to DroneColors.Danger
+            FlightState.FAILSAFE -> "FAILSAFE" to DroneColors.Warn
+            FlightState.ESTOP_LATCH -> "E-STOP" to DroneColors.Warn
+            FlightState.UNKNOWN -> "INCONNU" to DroneColors.Warn
         }
     }
 }
