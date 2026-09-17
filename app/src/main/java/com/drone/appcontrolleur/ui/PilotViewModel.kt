@@ -16,6 +16,7 @@ import com.drone.appcontrolleur.link.LinkSettings
 import com.drone.appcontrolleur.link.LinkStats
 import com.drone.appcontrolleur.link.WifiState
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -60,18 +61,23 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
                     // F-SEC-6 : chaque démarrage ou reconnexion repart désarmé, gaz à zéro
                     _control.update { it.linkLost() }
                     if (!session.active || session.network == null) return@collectLatest
-                    _sending.value = true
-                    try {
-                        linkManager.run(session.network, session.settings, session.settings.protocol.codec()) {
-                            _control.value.toInput()
+                    // Une erreur réseau (ex. bindSocket refusé pendant un changement de Wi-Fi)
+                    // ne doit pas figer l'écran : nouvel essai tant que la session est la même
+                    while (true) {
+                        _sending.value = true
+                        try {
+                            linkManager.run(session.network, session.settings, session.settings.protocol.codec()) {
+                                _control.value.toInput()
+                            }
+                        } catch (e: CancellationException) {
+                            throw e
+                        } catch (e: Exception) {
+                            _message.value = "Liaison interrompue : ${e.message}"
+                        } finally {
+                            _sending.value = false
+                            _control.update { it.linkLost() }
                         }
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        _message.value = "Liaison interrompue : ${e.message}"
-                    } finally {
-                        _sending.value = false
-                        _control.update { it.linkLost() }
+                        delay(RETRY_DELAY_MS)
                     }
                 }
         }
@@ -117,4 +123,8 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun resetEmergencyStop() = _control.update { it.estopCleared() }
+
+    private companion object {
+        const val RETRY_DELAY_MS = 1000L
+    }
 }
