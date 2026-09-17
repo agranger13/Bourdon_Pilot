@@ -2,7 +2,11 @@ package com.drone.appcontrolleur.ui
 
 import android.app.Application
 import android.net.Network
+import android.os.Build
 import android.os.SystemClock
+import android.os.VibrationEffect
+import android.os.Vibrator
+import android.os.VibratorManager
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.drone.appcontrolleur.DroneApp
@@ -36,6 +40,9 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
     val stats: StateFlow<LinkStats> = linkManager.stats
     val drone: StateFlow<DroneLink> = linkManager.drone
     private val supervisor = ArmSupervisor()
+
+    /** 0 normale, 1 basse, 2 critique : évite de répéter la même alerte. */
+    private var batteryLevel = 0
 
     private val _control = MutableStateFlow(ControlState())
     val control: StateFlow<ControlState> = _control.asStateFlow()
@@ -86,8 +93,45 @@ class PilotViewModel(app: Application) : AndroidViewModel(app) {
                 val outcome = supervisor.onLink(_control.value.armed, link, SystemClock.elapsedRealtime())
                 if (outcome.action != ArmSupervisor.Action.NONE) _control.update(outcome.action.apply)
                 outcome.message?.let { _message.value = it }
+                onBattery(link)
             }
         }
+    }
+
+    /** F-TEL-2 : alerte visuelle et vibration au passage en batterie basse puis critique. */
+    private fun onBattery(link: DroneLink) {
+        val telemetry = link.telemetry
+        if (telemetry == null || telemetry.vbatMv == 0) {
+            batteryLevel = 0
+            return
+        }
+        val level = when {
+            telemetry.batteryCritical -> 2
+            telemetry.batteryLow -> 1
+            else -> 0
+        }
+        // Seule l'aggravation alerte : pas de bavardage quand la tension oscille autour du seuil
+        if (level > batteryLevel) {
+            _message.value = if (level == 2) {
+                "Batterie critique : poser le drone maintenant"
+            } else {
+                "Batterie basse : préparer l'atterrissage"
+            }
+            vibrate(if (level == 2) longArrayOf(0, 250, 120, 250, 120, 250) else longArrayOf(0, 180))
+        }
+        batteryLevel = level
+    }
+
+    private fun vibrate(pattern: LongArray) {
+        val context = getApplication<Application>()
+        val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            context.getSystemService(VibratorManager::class.java)?.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            context.getSystemService(Vibrator::class.java)
+        }
+        if (vibrator?.hasVibrator() != true) return
+        vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
     }
 
     /** Binaire v1 : armement possible seulement si le drone répond. */

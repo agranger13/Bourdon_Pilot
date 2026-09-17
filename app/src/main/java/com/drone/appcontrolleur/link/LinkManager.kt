@@ -27,6 +27,10 @@ data class LinkStats(
     val rateHz: Int = 0,
     val sendErrors: Int = 0,
     val maxJitterMs: Float = 0f,
+    /** F-TEL-4 : commandes perdues, déduites de `ackSeq` ; null sans télémétrie. */
+    val lossPercent: Float? = null,
+    /** Télémétries reçues dans la dernière seconde (10 Hz attendus). */
+    val telemetryHz: Int = 0,
 )
 
 /** Dialogue avec le drone en binaire v1 (F-CON-3, F-CON-4). */
@@ -146,6 +150,13 @@ class LinkManager {
                 var lastSend = 0L
                 var nextSend = windowStart
                 var lastHelloNs = 0L
+                // Perte de commandes : progression de ackSeq comparée aux commandes émises
+                var lastTelemetrySeq = -1
+                var prevAckSeq = -1
+                var prevSentSeq = 0
+                var ackedInWindow = 0
+                var sentAckedInWindow = 0
+                var telemetryInWindow = 0
                 while (isActive) {
                     val now = System.nanoTime()
                     if (lastSend != 0L) maxJitterNs = max(maxJitterNs, abs(now - lastSend - PERIOD_NS))
@@ -161,6 +172,19 @@ class LinkManager {
                             else -> DronePhase.ACTIVE
                         }
                         _drone.value = DroneLink(phase, ack, freshTelemetry)
+
+                        if (freshTelemetry != null && freshTelemetry.seq != lastTelemetrySeq) {
+                            lastTelemetrySeq = freshTelemetry.seq
+                            telemetryInWindow++
+                            val sent = (seq - prevSentSeq) and 0xFFFF
+                            if (prevAckSeq >= 0 && sent > 0) {
+                                // Le même retard de quelques paquets en vol aux deux bornes s'annule
+                                ackedInWindow += (freshTelemetry.ackSeq - prevAckSeq) and 0xFFFF
+                                sentAckedInWindow += sent
+                            }
+                            prevAckSeq = freshTelemetry.ackSeq
+                            prevSentSeq = seq
+                        }
 
                         // HELLO rapide tant que le drone ne répond pas ; lent pour le maintien sans télémétrie
                         val helloPeriodMs = when {
@@ -184,10 +208,18 @@ class LinkManager {
                     }
 
                     if (now - windowStart >= 1_000_000_000L) {
-                        _stats.value = LinkStats(sentInWindow, errors, maxJitterNs / 1e6f)
+                        val loss = if (sentAckedInWindow > 0) {
+                            (1f - ackedInWindow.toFloat() / sentAckedInWindow).coerceIn(0f, 1f) * 100f
+                        } else {
+                            null
+                        }
+                        _stats.value = LinkStats(sentInWindow, errors, maxJitterNs / 1e6f, loss, telemetryInWindow)
                         windowStart = now
                         sentInWindow = 0
                         maxJitterNs = 0
+                        ackedInWindow = 0
+                        sentAckedInWindow = 0
+                        telemetryInWindow = 0
                     }
 
                     nextSend += PERIOD_NS

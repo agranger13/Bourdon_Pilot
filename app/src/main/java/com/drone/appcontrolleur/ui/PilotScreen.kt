@@ -122,7 +122,13 @@ fun PilotScreen(
     }
 
     Box(Modifier.fillMaxSize().screenBackground()) {
-        AttitudeHorizon(control.roll, control.pitch, Modifier.align(Alignment.Center))
+        val telemetry = drone.telemetry
+        AttitudeHorizon(
+            rollDeg = telemetry?.rollDeg ?: (control.roll * MAX_ANGLE_DEG),
+            pitchDeg = telemetry?.pitchDeg ?: (control.pitch * MAX_ANGLE_DEG),
+            measured = telemetry != null,
+            modifier = Modifier.align(Alignment.Center),
+        )
         if (control.armed) ArmedFrame()
 
         LinkPanel(wifi, sending, stats, drone, Modifier.align(Alignment.TopStart).padding(start = 14.dp, top = 10.dp))
@@ -211,13 +217,23 @@ fun PilotScreen(
 
 private data class LinkView(val color: Color, val text: String, val bars: Int)
 
-// Barres : qualité d'émission tant que le RSSI n'est pas remonté par la télémétrie (étape 10)
+/** F-TEL-4 : barres sur le RSSI mesuré par le drone quand il est connu. */
+private fun rssiBars(rssiDbm: Int) = when {
+    rssiDbm >= -55 -> 4
+    rssiDbm >= -67 -> 3
+    rssiDbm >= -75 -> 2
+    else -> 1
+}
+
 private fun linkView(wifi: WifiState, sending: Boolean, stats: LinkStats, drone: DroneLink) = when {
     sending && drone.phase == DronePhase.HANDSHAKE -> LinkView(DroneColors.Cyan, "Attente HELLO…", 2)
     sending && drone.phase == DronePhase.NO_RESPONSE -> LinkView(DroneColors.Danger, "Drone muet", 1)
     sending && drone.phase == DronePhase.INCOMPATIBLE -> LinkView(DroneColors.Danger, "Incompatible", 0)
     sending && stats.sendErrors > 0 -> LinkView(DroneColors.Warn, "Lien dégradé", 2)
-    sending -> LinkView(DroneColors.Ok, "Connecté", 4)
+    sending -> {
+        val rssi = drone.telemetry?.rssiDbm ?: 0
+        LinkView(DroneColors.Ok, "Connecté", if (rssi != 0) rssiBars(rssi) else 4)
+    }
     wifi is WifiState.Connected -> LinkView(DroneColors.Cyan, "Démarrage…", 3)
     wifi is WifiState.Searching -> LinkView(DroneColors.Warn, "Recherche…", 1)
     wifi is WifiState.Lost -> LinkView(DroneColors.Danger, "Lien perdu", 0)
@@ -240,12 +256,16 @@ private fun LinkPanel(wifi: WifiState, sending: Boolean, stats: LinkStats, drone
             }
             PanelDivider()
             SignalBars(link.bars, link.color)
+            val rssi = drone.telemetry?.rssiDbm ?: 0
             Column {
                 Text(
                     if (sending) "gigue ${"%.1f".format(stats.maxJitterMs)} ms" else "gigue —",
                     style = DroneType.mono(10.sp, link.color),
                 )
-                Text("erreurs ${if (sending) stats.sendErrors else "—"}", style = DroneType.mono(8.sp, DroneColors.TextMuted, FontWeight.Normal))
+                Text(
+                    if (rssi != 0) "$rssi dBm" else "erreurs ${if (sending) stats.sendErrors else "—"}",
+                    style = DroneType.mono(8.sp, DroneColors.TextMuted, FontWeight.Normal),
+                )
             }
             PanelDivider()
             Column {
@@ -253,6 +273,15 @@ private fun LinkPanel(wifi: WifiState, sending: Boolean, stats: LinkStats, drone
                 Text(
                     if (sending) "${stats.rateHz} Hz" else "—",
                     style = DroneType.mono(11.sp, if (sending) DroneColors.Cyan else DroneColors.Idle),
+                )
+                val loss = stats.lossPercent
+                Text(
+                    if (loss != null) "perte ${"%.1f".format(loss)} %" else "perte —",
+                    style = DroneType.mono(
+                        8.sp,
+                        if (loss != null && loss > LOSS_WARN_PERCENT) DroneColors.Warn else DroneColors.TextMuted,
+                        FontWeight.Normal,
+                    ),
                 )
             }
         }
@@ -267,17 +296,23 @@ private fun StatusPanel(protocol: ProtocolType, drone: DroneLink, settingsEnable
             horizontalArrangement = Arrangement.spacedBy(10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            // Batterie non mesurée tant que la télémétrie n'est pas décodée (étape 10)
-            BatteryGauge(fraction = 0f, color = DroneColors.Idle)
+            // F-TEL-2 : masquée tant que le drone ne mesure pas la tension (vbatMv = 0)
+            val battery = batteryView(drone)
+            BatteryGauge(battery.fraction, battery.color)
             Column {
-                Text("—", style = DroneType.mono(13.sp, DroneColors.Idle))
-                Text("NON MESURÉE", style = DroneType.caps(7.sp, tracking = 0.14f))
+                Text(battery.text, style = DroneType.mono(13.sp, battery.color))
+                Text(battery.label, style = DroneType.caps(7.sp, tracking = 0.14f))
             }
             PanelDivider()
             val (stateText, stateColor) = droneStateView(drone)
             Column {
                 Text("DRONE", style = DroneType.caps(8.sp, tracking = 0.14f))
                 Text(stateText, style = DroneType.mono(11.sp, stateColor), maxLines = 1)
+                val loopHz = drone.telemetry?.loopHz
+                Text(
+                    if (loopHz != null && loopHz > 0) "boucle $loopHz Hz" else "boucle —",
+                    style = DroneType.mono(8.sp, DroneColors.TextMuted, FontWeight.Normal),
+                )
             }
             PanelDivider()
             when (protocol) {
@@ -307,6 +342,26 @@ private fun droneStateView(drone: DroneLink): Pair<String, Color> {
             FlightState.UNKNOWN -> "INCONNU" to DroneColors.Warn
         }
     }
+}
+
+private data class BatteryView(val fraction: Float, val color: Color, val text: String, val label: String)
+
+/** Tension d'un LiPo 1S : 3,30 V critique, 3,50 V basse, 4,20 V pleine (SPEC_FIRMWARE §7.2). */
+private fun batteryView(drone: DroneLink): BatteryView {
+    val telemetry = drone.telemetry
+    if (telemetry == null || telemetry.vbatMv == 0) return BatteryView(0f, DroneColors.Idle, "—", "NON MESURÉE")
+    val volts = telemetry.vbatMv / 1000f
+    val color = when {
+        telemetry.batteryCritical -> DroneColors.Danger
+        telemetry.batteryLow -> DroneColors.Warn
+        else -> DroneColors.Ok
+    }
+    val label = when {
+        telemetry.batteryCritical -> "CRITIQUE"
+        telemetry.batteryLow -> "BASSE"
+        else -> "BATTERIE"
+    }
+    return BatteryView(((volts - 3.30f) / 0.90f).coerceIn(0f, 1f), color, "%.2f V".format(volts), label)
 }
 
 @Composable
@@ -428,17 +483,19 @@ private fun ThrottleGauge(throttle: Float, modifier: Modifier) {
     }
 }
 
-/** Horizon artificiel discret, piloté par les consignes (pas d'attitude mesurée avant la télémétrie). */
+/**
+ * Horizon artificiel (F-TEL-3) : attitude mesurée dès que la télémétrie arrive, sinon consignes.
+ */
 @Composable
-private fun AttitudeHorizon(roll: Float, pitch: Float, modifier: Modifier) {
+private fun AttitudeHorizon(rollDeg: Float, pitchDeg: Float, measured: Boolean, modifier: Modifier) {
     Box(modifier, contentAlignment = Alignment.Center) {
         // Traits seuls, sans aplats dégradés qui brouillaient le centre de l'écran
         Canvas(Modifier.size(400.dp).alpha(0.22f)) {
             val r = size.minDimension / 2
-            val pitchShift = pitch * 36.dp.toPx()
+            val pitchShift = (pitchDeg / MAX_ANGLE_DEG).coerceIn(-1.5f, 1.5f) * 36.dp.toPx()
             clipPath(Path().apply { addOval(Rect(center, r)) }) {
                 withTransform({
-                    rotate(-roll * 30f, center)
+                    rotate(-rollDeg, center)
                     translate(top = pitchShift)
                 }) {
                     val ext = r * 1.5f
@@ -454,6 +511,16 @@ private fun AttitudeHorizon(roll: Float, pitch: Float, modifier: Modifier) {
         Canvas(Modifier.size(400.dp)) {
             val w = 1.5.dp.toPx()
             drawCircle(DroneColors.Cyan.copy(alpha = 0.4f), size.minDimension / 2 - w / 2, style = Stroke(w))
+        }
+        // Attitude mesurée : valeurs en degrés, pour lever toute ambiguïté de signe
+        if (measured) {
+            Row(
+                modifier = Modifier.align(Alignment.BottomCenter).padding(bottom = 76.dp),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Readout("R°", signedDegrees(rollDeg), DroneColors.CyanLight)
+                Readout("P°", signedDegrees(pitchDeg), DroneColors.CyanLight)
+            }
         }
         // Réticule fixe
         Canvas(Modifier.width(116.dp).height(8.dp).alpha(0.5f)) {
@@ -527,5 +594,13 @@ private fun NoLinkOverlay(wifi: WifiState, onOpenConnection: () -> Unit, onLeave
         }
     }
 }
+
+/** Angle max des consignes, côté firmware (MAX_ROLL_ANGLE). */
+private const val MAX_ANGLE_DEG = 30f
+
+/** Au-delà, la perte de commandes est signalée en orange. */
+private const val LOSS_WARN_PERCENT = 5f
+
+private fun signedDegrees(deg: Float) = deg.roundToInt().let { if (it > 0) "+$it°" else "$it°" }
 
 private fun signedPercent(value: Float) = (value * 100).roundToInt().let { if (it > 0) "+$it%" else "$it%" }
