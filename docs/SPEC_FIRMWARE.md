@@ -228,14 +228,25 @@ En cas de refus : lever le bit `arm refusé` dans la télémétrie, pour que l'a
 ### 6.5 Validation des signes (P13), sans hélices
 Chaque réponse attendue découle de la convention du §2. On arme avec un throttle juste au-dessus de 20/255 (PID actif), puis :
 
-| Action | Moteurs qui doivent accélérer |
-|---|---|
-| Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose |
-| Incliner à la main le côté droit vers le bas | M2, M3 (droite) |
-| Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) |
-| Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) |
-| Pousser le joystick droit vers la droite | M1, M4 (gauche) |
-| Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) |
+| Action | Moteurs qui doivent accélérer | État (banc du 2026-09-17, firmware FW-5) |
+|---|---|---|
+| Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose | ✅ Vérifié |
+| Incliner à la main le côté droit vers le bas | M2, M3 (droite) | ⏳ **À VÉRIFIER** |
+| Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) | ⏳ **À VÉRIFIER** |
+| Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) | ⏳ À vérifier (impression de bon sens, non confirmé moteur par moteur) |
+| Pousser le joystick droit vers la droite | M1, M4 (gauche) | ⏳ À vérifier (idem) |
+| Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) | ⏳ À vérifier (idem) |
+
+> 🚨 **Aucun vol avec hélices avant que les six lignes soient vertes.** Les deux
+> lignes en gras sont les plus importantes : le roulis et le lacet sont les deux
+> signes que FW-5 a modifiés (le pitch, lui, était déjà correct avant FW-5).
+> Sur le roulis, le firmware prend consigne **et** mesure au signe opposé à
+> l'entrée du PID : si l'aile droite abaissée fait accélérer M1 et M4 au lieu de
+> M2 et M3, c'est cette inversion qui est en trop, et il faut la retirer.
+>
+> Reste aussi à vérifier au banc : attitude qui ne dérive pas, drone **à plat et
+> immobile** pendant quelques minutes (le relevé du 2026-09-17 a duré 10 s, carte
+> posée de travers). La cadence de boucle, elle, est mesurée à **250 Hz stables**.
 
 Corriger en inversant la mesure concernée (`roll`, `pitch` ou `yawRate`) avant le PID, pas le mixage. Consigner le montage réel du MPU-6050 dans le README.
 
@@ -291,7 +302,7 @@ Broches libres après les moteurs (D0–D3) et l'I²C (D4–D5) : D6–D10.
 | FW-2 | Machine à états, failsafe 300 ms, conditions d'armement (P2, P3) | Arrêt du Wi-Fi du téléphone → moteurs à 0 en < 500 ms ; ARM refusé avec throttle haut | ✅ Fait |
 | FW-3 | Protocole binaire + HELLO + détection legacy (§4) | App en mode binaire : consignes cohérentes dans les logs, compteur CRC à 0 | ✅ Fait |
 | FW-4 | Télémétrie 10 Hz | L'app affiche l'attitude en inclinant le drone à la main | ✅ Fait, validé au banc le 2026-09-17 |
-| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | 🧪 Code prêt (build + tests natifs OK), banc à faire : `loopHz`, dérive, et les 6 tests du §6.5 |
+| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | 🧪 Code en place. `loopHz` = 250 Hz stables ✅. **Restent au banc : dérive à plat, et 5 des 6 tests de signes du §6.5 (roulis et lacet en priorité)** |
 | FW-6 | Mesure batterie (§7) | Écart < 50 mV avec le multimètre | ⏳ À faire |
 | FW-7 | **Premier vol** avec hélices, en extérieur ou dans un espace dégagé | Stationnaire de 30 s | ⏳ À faire |
 | FW-8 | Paramètres via l'app (§4.6) | PID modifiés depuis l'app et conservés après reboot | ⏳ À faire |
