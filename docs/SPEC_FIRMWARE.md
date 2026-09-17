@@ -291,7 +291,7 @@ Broches libres après les moteurs (D0–D3) et l'I²C (D4–D5) : D6–D10.
 | FW-2 | Machine à états, failsafe 300 ms, conditions d'armement (P2, P3) | Arrêt du Wi-Fi du téléphone → moteurs à 0 en < 500 ms ; ARM refusé avec throttle haut | ✅ Fait |
 | FW-3 | Protocole binaire + HELLO + détection legacy (§4) | App en mode binaire : consignes cohérentes dans les logs, compteur CRC à 0 | ✅ Fait |
 | FW-4 | Télémétrie 10 Hz | L'app affiche l'attitude en inclinant le drone à la main | ✅ Fait, validé au banc le 2026-09-17 |
-| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | ⏳ À faire |
+| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | 🧪 Code prêt (build + tests natifs OK), banc à faire : `loopHz`, dérive, et les 6 tests du §6.5 |
 | FW-6 | Mesure batterie (§7) | Écart < 50 mV avec le multimètre | ⏳ À faire |
 | FW-7 | **Premier vol** avec hélices, en extérieur ou dans un espace dégagé | Stationnaire de 30 s | ⏳ À faire |
 | FW-8 | Paramètres via l'app (§4.6) | PID modifiés depuis l'app et conservés après reboot | ⏳ À faire |
