@@ -31,7 +31,7 @@ Faire décoller, stabiliser, déplacer et poser le drone depuis un téléphone A
 | **J1 : MVP joysticks** | 2 joysticks, ARM/DISARM, arrêt d'urgence, toujours en CSV | Les moteurs réagissent, drone **sans hélices** | Non (FW-1 conseillé) |
 | **J2 : Sécurité** | Protocole binaire, failsafe 300 ms, armement sécurisé | Wi-Fi coupé : moteurs arrêtés en < 500 ms ; ARM refusé avec les gaz hauts | FW-2, FW-3 |
 | **J3 : Télémétrie** | Attitude, qualité du lien, état confirmé par le drone, batterie | L'horizon artificiel suit le drone incliné à la main | FW-4 à FW-6 |
-| **J4 : Premier vol** | Vol stationnaire à faible hauteur | 30 s de stationnaire | FW-5, FW-7 |
+| **J4 : Premier vol** | Vol stationnaire à faible hauteur | 30 s de stationnaire | FW-5b, FW-7 (FW-6 non requis : essais courts) |
 | **J5 : Réglages** | PID, trims, expo et sensibilité depuis l'app | Réglages conservés après reboot du drone | FW-8 |
 | **J6 : Confort** | Manette Bluetooth, retour haptique | Pilotage avec une manette physique | Non |
 
@@ -221,30 +221,37 @@ Voir **[`SPEC_FIRMWARE.md`](SPEC_FIRMWARE.md)**. Les points bloquants à corrige
 
 ## 8. Plan de réalisation
 
-> **Avancement (2026-09-17)** : étapes 1 à 9 terminées, **J2 validé au banc** (sans hélices).
-> Étape 10 : FW-5 fait, HUD télémétrie fait côté app ; reste la batterie (FW-6, câblage).
-> 🚨 **Avant l'étape 11 (premier vol)** : dérouler les 6 tests de signes de SPEC_FIRMWARE §6.5, dont 5 ne sont pas encore faits.
+> **Avancement (2026-09-18)** : étapes 1 à 9 terminées, **J2 validé au banc** (sans hélices).
+> Étape 10 : FW-5 et FW-5b faits, HUD télémétrie validé sur le drone ; reste la batterie (FW-6, câblage), **repoussée après le premier vol**.
+> ✅ **Les 6 tests de signes de SPEC_FIRMWARE §6.5 sont verts**, dérive d'attitude comprise : le verrou de l'étape 11 est levé.
 
-### Point de reprise (fin de séance du 2026-09-17)
+### Point de reprise (séance du 2026-09-18)
 
 **Fait et validé sur le drone** : liaison binaire v1 (HELLO, télémétrie 10 Hz, état confirmé,
-failsafe), soit le jalon J2. Firmware jusqu'à FW-5 (boucle 250 Hz, IMU permanente, calibration,
-PID à `dt` mesuré).
+failsafe), soit le jalon J2. Firmware jusqu'à **FW-5b** (boucle 250 Hz à cadence stable, IMU
+permanente, calibration, PID à `dt` mesuré, signe de roulis corrigé). HUD de télémétrie de l'app
+(horizon sur l'attitude mesurée, RSSI, perte de commandes, fréquence de boucle) : **vérifié sur le
+drone, conforme**.
 
-**Fait, pas encore vérifié sur le drone** : le HUD de télémétrie de l'app (commit `4c0f66d`,
-installé sur le téléphone) — horizon sur l'attitude mesurée avec lecture en degrés, barres de
-signal sur le RSSI, perte de commandes via `ackSeq`, fréquence de boucle. À confirmer en
-inclinant le drone à la main : **si l'horizon part dans le mauvais sens, c'est une convention de
-signes à corriger côté firmware**.
+**Banc du 2026-09-18, tout est vert** :
+- les **6 tests de signes** du §6.5 (main et joysticks, moteur par moteur) ;
+- **dérive d'attitude** : horizon stable sur plusieurs minutes, drone à plat et immobile ;
+- **sécurités** repassées sur le binaire FW-5b : failsafe < 500 ms, ARM refusé gaz hauts, E-STOP ;
+- **mécanique** : sens des hélices conforme au mixage, MPU-6050 fixé à plat X vers l'avant, visserie.
 
-**À faire à la reprise, dans cet ordre :**
-1. Vérifier le HUD sur le drone (horizon, RSSI, perte, boucle).
-2. Dérouler les **6 tests de signes** de SPEC_FIRMWARE §6.5 (5 restent à faire, roulis et lacet
-   en priorité) et la dérive d'attitude à plat sur plusieurs minutes. Bloquant avant tout vol.
-3. FW-6 : câblage du pont diviseur sur D10/GPIO9 puis mesure batterie. L'app est déjà prête
-   (jauge, seuils 3,50 V et 3,30 V, alertes avec vibration), elle les affichera dès que
-   `vbatMv` ne sera plus nul. Cela terminera l'étape 10 et le jalon J3.
-4. Ensuite seulement : FW-7, premier vol avec hélices.
+**Décision : FW-6 (mesure batterie) passe après le premier vol.** Le pont diviseur n'est pas
+câblé et le montage demande du temps. Les premiers vols sont des **essais courts**, qui n'en ont
+pas besoin ; FW-6 conditionne les **vols plus longs**. L'app est déjà prête (jauge, seuils 3,50 V
+et 3,30 V, alertes avec vibration) : tant que `vbatMv` vaut 0 elle affiche « NON MESURÉE », sans
+alerte et **sans bloquer l'armement**.
+
+**À faire à la reprise :**
+1. **FW-7, premier vol** avec hélices, espace dégagé, faible hauteur, objectif 30 s de stationnaire.
+   En l'absence de mesure de tension : multimètre avant et après chaque vol, pas de redécollage
+   sous 3,50 V, vols minutés et courts, atterrissage immédiat à la moindre perte de puissance.
+2. Ensuite FW-6 (câblage du pont diviseur sur D10/GPIO9), qui terminera l'étape 10 et le jalon J3
+   et débloquera les vols plus longs.
+3. Puis étape 11 : réglages expo, trims et PID (FW-8).
 
 | Étape | Contenu | Livrable | État |
 |---|---|---|---|
@@ -257,8 +264,8 @@ signes à corriger côté firmware**.
 | 7 | *Firmware FW-1 à FW-3* (voir SPEC_FIRMWARE §8) | Drone en binaire v1 sécurisé | ✅ Fait |
 | 8 | Maquettes **Claude Design** (connexion, pilotage désarmé/armé, alertes, paramètres, design system), puis intégration dans le thème Compose (`Theme.kt` : couleurs, typo, composants ARM / E-STOP / barre de statut) | Écrans conformes aux maquettes, logique inchangée | ✅ Fait |
 | 9 | Mode binaire dans l'app + HELLO + affichage de l'état confirmé | **J2** | ✅ Fait |
-| 10 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** | 🟡 FW-4 et FW-5 faits, HUD fait (horizon mesuré, RSSI, perte, boucle) ; batterie en attente de FW-6 |
-| 11 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** | ⏳ À faire — **bloqué** par les tests de signes §6.5 et par FW-6/FW-7 |
+| 10 | *Firmware FW-4 à FW-6* + HUD télémétrie et batterie | **J3** | 🟡 FW-4, FW-5 et FW-5b faits, HUD validé sur le drone ; batterie (FW-6) **repoussée après le premier vol** |
+| 11 | Premiers vols, puis réglages expo/trims/PID (*FW-8*) | **J4 et J5** | 🟡 **Débloqué** : §6.5 vert, sécurités et mécanique OK. Prochaine étape = FW-7 |
 | 12 | Manette Bluetooth, haptique | **J6** | ⏳ À faire |
 
 ---
@@ -271,5 +278,5 @@ signes à corriger côté firmware**.
 | Comportement du Wi-Fi différent selon le constructeur du téléphone | Connexion auto instable | Tester dès l'étape 4 ; bouton de connexion manuelle en repli |
 | Firmware actuel peu sûr (failsafe 10 s, armement gaz hauts) | Départ moteur, drone incontrôlé | Legacy CSV limité aux tests **sans hélices** ; corrections FW-1 à FW-3 avant le vol |
 | Latence ou pics Wi-Fi | Pilotage saccadé | 50 Hz fixe, séquence, failsafe 300 ms, mesure de la perte |
-| Chute de tension LiPo 1S (brown-out) | Reboot en vol | Mesure batterie (SPEC_FIRMWARE §7), alertes, armement refusé si critique |
+| Chute de tension LiPo 1S (brown-out) | Reboot en vol | Mesure batterie (SPEC_FIRMWARE §7), alertes, armement refusé si critique. ⚠️ **Non couvert pendant les premiers vols**, FW-6 étant repoussée : parade manuelle (multimètre avant/après, plancher à 3,50 V, vols courts et minutés). FW-6 est la condition des vols plus longs |
 | App et firmware désynchronisés sur le protocole | Commandes erronées | HELLO avec version, vecteurs de test partagés |

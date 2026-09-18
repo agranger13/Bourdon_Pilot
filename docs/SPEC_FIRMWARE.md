@@ -239,11 +239,13 @@ Chaque réponse attendue découle de la convention du §2. On arme avec un throt
 | Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose | ✅ Vérifié (2026-09-17) |
 | Incliner à la main le côté droit vers le bas | M2, M3 (droite) | ✅ Vérifié après FW-5b (en FW-5 : ❌ M1 et M4) |
 | Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) | ✅ Vérifié : M1 et M3 |
-| Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) | ⏳ À vérifier (impression de bon sens, non confirmé moteur par moteur) |
+| Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) | ✅ Vérifié |
 | Pousser le joystick droit vers la droite | M1, M4 (gauche) | ✅ Vérifié après FW-5b |
-| Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) | ⏳ À vérifier (idem) |
+| Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) | ✅ Vérifié |
 
 > 🚨 **Aucun vol avec hélices avant que les six lignes soient vertes.**
+> ✅ **Les six lignes sont vertes depuis le banc du 2026-09-18** : le verrou du
+> premier vol est levé.
 >
 > **Banc du 2026-09-18** : en FW-5, le lacet était bon mais le **roulis était
 > inversé** (aile droite abaissée → M1 et M4 au lieu de M2 et M3). Le défaut ne
@@ -253,9 +255,11 @@ Chaque réponse attendue découle de la convention du §2. On arme avec un throt
 > signe, sans toucher au mixage, au PID, au pitch ni au lacet. Les deux lignes
 > de roulis (main + joystick) sont vertes après FW-5b.
 >
-> Reste aussi à vérifier au banc : attitude qui ne dérive pas, drone **à plat et
-> immobile** pendant quelques minutes (le relevé du 2026-09-17 a duré 10 s, carte
-> posée de travers). La cadence de boucle, elle, est mesurée à **250 Hz stables**.
+> **Dérive d'attitude : ✅ vérifiée le 2026-09-18** — drone à plat et immobile,
+> horizon stable sur plusieurs minutes (le relevé du 2026-09-17, 10 s carte posée
+> de travers, ne comptait pas). La cadence de boucle est mesurée à **250 Hz
+> stables**. Les sécurités de FW-2 (failsafe < 500 ms, ARM refusé gaz hauts,
+> E-STOP) ont été **repassées sur le binaire FW-5b** : ✅.
 
 Corriger en inversant la mesure concernée (`roll`, `pitch` ou `yawRate`) avant le PID, pas le mixage. Consigner le montage réel du MPU-6050 dans le README.
 
@@ -312,11 +316,24 @@ Broches libres après les moteurs (D0–D3) et l'I²C (D4–D5) : D6–D10.
 | FW-3 | Protocole binaire + HELLO + détection legacy (§4) | App en mode binaire : consignes cohérentes dans les logs, compteur CRC à 0 | ✅ Fait |
 | FW-4 | Télémétrie 10 Hz | L'app affiche l'attitude en inclinant le drone à la main | ✅ Fait, validé au banc le 2026-09-17 |
 | FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | ✅ Fait, `loopHz` = 250 Hz stables. 🚨 Banc du 2026-09-18 : pitch et lacet ✅, **roulis inversé → FW-5b** |
-| FW-5b | **Correction du signe de roulis** : mesure de roll remise à `atan2(+ay, az)`, cohérente avec `+gyro.x` ; l'inversion consigne + mesure à l'entrée du PID est conservée (§2, §6.5) | Aile droite abaissée → M1/M4 → **M2/M3** ; joystick droit vers la droite → M1, M4 | ✅ Fait, validé au banc le 2026-09-18. Restent au §6.5 : joystick avant, joystick de lacet, dérive au repos |
-| FW-6 | Mesure batterie (§7) | Écart < 50 mV avec le multimètre | ⏳ À faire |
-| FW-7 | **Premier vol** avec hélices, en extérieur ou dans un espace dégagé | Stationnaire de 30 s | ⏳ À faire — **interdit avant que les 6 tests de signes du §6.5 soient verts** |
+| FW-5b | **Correction du signe de roulis** : mesure de roll remise à `atan2(+ay, az)`, cohérente avec `+gyro.x` ; l'inversion consigne + mesure à l'entrée du PID est conservée (§2, §6.5) | Aile droite abaissée → M1/M4 → **M2/M3** ; joystick droit vers la droite → M1, M4 | ✅ Fait, validé au banc le 2026-09-18. **Les 6 tests du §6.5 sont verts**, dérive au repos comprise |
+| FW-7 | **Premier vol** avec hélices, en extérieur ou dans un espace dégagé | Stationnaire de 30 s | ⏳ **Prochaine étape** — les 6 tests du §6.5 sont verts, le verrou est levé |
+| FW-6 | Mesure batterie (§7) | Écart < 50 mV avec le multimètre | ⏳ À faire **après FW-7** : le montage du pont diviseur n'est pas fait, et la mesure n'est pas nécessaire aux premiers vols d'essai, courts. Elle conditionne en revanche les **vols plus longs** (voir l'encadré ci-dessous) |
 | FW-8 | Paramètres via l'app (§4.6) | PID modifiés depuis l'app et conservés après reboot | ⏳ À faire |
 | FW-9 | Suppression du format CSV/JSON | L'app fonctionne en binaire uniquement | ⏳ À faire |
+
+> **Décision (2026-09-18) : FW-6 passe après le premier vol.** Le pont diviseur
+> n'est pas câblé et le montage demande du temps ; les premiers vols seront des
+> **essais courts**, pour lesquels la mesure de tension n'est pas indispensable.
+> FW-6 est donc la condition des **vols plus longs**, pas du premier vol.
+>
+> En attendant, aucune protection batterie n'existe : l'app affiche « NON
+> MESURÉE » et n'émet aucune alerte tant que `vbatMv` vaut 0 (elle ne bloque pas
+> l'armement pour autant). Le risque de brown-out en vol du registre de risques
+> reste donc non couvert, et est compensé à la main :
+> - tension au multimètre **avant et après** chaque vol, pas de redécollage sous **3,50 V** ;
+> - vols **minutés et courts** (~1 min pour commencer), jamais « jusqu'à ce que ça faiblisse » ;
+> - toute perte de puissance ressentie = atterrissage immédiat.
 
 ---
 
