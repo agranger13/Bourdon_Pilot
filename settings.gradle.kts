@@ -14,5 +14,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AppControlleur"
+rootProject.name = "Bourdon"
 include(":app")

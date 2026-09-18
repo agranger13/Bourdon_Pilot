@@ -1,4 +1,4 @@
-# Spec : modifications du firmware pour AppControlleur
+# Spec : modifications du firmware pour Bourdon Pilot
 
 Document de travail pour faire évoluer le firmware **`DroneDelivery/super-octo-broccoli`** (C++, PlatformIO / Arduino, XIAO ESP32-S3). L'objectif est qu'il soit compatible avec l'application Android et plus sûr en vol.
 

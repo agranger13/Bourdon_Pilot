@@ -1,4 +1,4 @@
-"""Protocole AppControlleur côté Python (SPEC_FIRMWARE §4).
+"""Protocole Bourdon côté Python (SPEC_FIRMWARE §4).
 
 Implémentation de référence utilisée par le simulateur et par le générateur de
 vecteurs partagés. Doit rester alignée sur les codecs Kotlin et le firmware.

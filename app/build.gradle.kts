@@ -5,11 +5,11 @@ plugins {
 }
 
 android {
-    namespace = "com.drone.appcontrolleur"
+    namespace = "com.bourdon.pilot"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.drone.appcontrolleur"
+        applicationId = "com.bourdon.pilot"
         minSdk = 29 // WifiNetworkSpecifier (NF-4)
         targetSdk = 35
         versionCode = 1

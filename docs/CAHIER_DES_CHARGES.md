@@ -1,4 +1,4 @@
-# AppControlleur : cahier des charges
+# Bourdon Pilot : cahier des charges
 
 Application Android pour piloter le micro-drone maison avec des joysticks virtuels.
 
