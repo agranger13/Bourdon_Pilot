@@ -72,6 +72,12 @@ Si le capteur est tourné de 180° (X vers l'arrière), c'est le roll qui devien
 
 **Décision (2026-09-15)** : le MPU-6050 n'étant pas encore fixé, il sera monté **à plat, composants vers le haut, axe X (sérigraphie) vers l'avant**. C'est le repère standard, et le pitch est déjà correct avec lui. Aucune orientation à plat ne corrige à la fois roll et lacet : il faudra donc, dans le firmware, **inverser la mesure de roll et celle de `yawRate`** avant le PID. Correction à confirmer par le test du §6.5 avant tout vol.
 
+**Mise en œuvre (FW-5, corrigée en FW-5b le 2026-09-18)** :
+- **Lacet** : `yawRate = −gyro.z` dans `GyroScoper`, puis `compute(yawSetpoint, yawRate)`.
+- **Roll** : la mesure `GyroScoper.roll` reste dans la convention de l'app, c'est-à-dire `atan2(+ay, az)` fusionné avec `+gyro.x`, positif quand le côté droit descend. C'est cette valeur qui part dans la télémétrie et le HUD. L'inversion se fait à l'entrée du PID, sur la consigne **et** la mesure : `compute(−rollSetpoint, −roll)`. La consigne et la mesure restent ainsi comparables.
+- **Défaut corrigé par FW-5b** : FW-5 avait en plus inversé le signe de `ay` (`atan2(−ay, az)`). Ce signe était faux : quand le côté droit descend, `ay = +g·sin φ > 0`. L'accéléromètre contredisait alors le gyroscope dans le filtre complémentaire et annulait l'inversion du PID, d'où la boucle de roulis divergente au banc.
+- Retirer l'inversion du PID n'aurait pas été une bonne correction : l'aile basse aurait été corrigée, mais le joystick vers la droite aurait fait rouler le drone à gauche, et le HUD serait resté inversé.
+
 ---
 
 ## 3. Wi-Fi
@@ -228,21 +234,24 @@ En cas de refus : lever le bit `arm refusé` dans la télémétrie, pour que l'a
 ### 6.5 Validation des signes (P13), sans hélices
 Chaque réponse attendue découle de la convention du §2. On arme avec un throttle juste au-dessus de 20/255 (PID actif), puis :
 
-| Action | Moteurs qui doivent accélérer | État (banc du 2026-09-17, firmware FW-5) |
+| Action | Moteurs qui doivent accélérer | État (banc du 2026-09-18, firmware FW-5b) |
 |---|---|---|
-| Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose | ✅ Vérifié |
-| Incliner à la main le côté droit vers le bas | M2, M3 (droite) | ⏳ **À VÉRIFIER** |
-| Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) | ⏳ **À VÉRIFIER** |
+| Incliner à la main le nez vers le bas | M1, M2 (avant) : le PID s'oppose | ✅ Vérifié (2026-09-17) |
+| Incliner à la main le côté droit vers le bas | M2, M3 (droite) | ✅ Vérifié après FW-5b (en FW-5 : ❌ M1 et M4) |
+| Tourner à la main dans le sens horaire vu de dessus | Ceux qui créent un couple anti-horaire : M1, M3 (hélices horaires) | ✅ Vérifié : M1 et M3 |
 | Pousser le joystick droit vers l'avant, drone à plat | M3, M4 (arrière) | ⏳ À vérifier (impression de bon sens, non confirmé moteur par moteur) |
-| Pousser le joystick droit vers la droite | M1, M4 (gauche) | ⏳ À vérifier (idem) |
+| Pousser le joystick droit vers la droite | M1, M4 (gauche) | ✅ Vérifié après FW-5b |
 | Pousser le joystick gauche vers la droite (yaw) | M2, M4 (hélices anti-horaires, couple horaire) | ⏳ À vérifier (idem) |
 
-> 🚨 **Aucun vol avec hélices avant que les six lignes soient vertes.** Les deux
-> lignes en gras sont les plus importantes : le roulis et le lacet sont les deux
-> signes que FW-5 a modifiés (le pitch, lui, était déjà correct avant FW-5).
-> Sur le roulis, le firmware prend consigne **et** mesure au signe opposé à
-> l'entrée du PID : si l'aile droite abaissée fait accélérer M1 et M4 au lieu de
-> M2 et M3, c'est cette inversion qui est en trop, et il faut la retirer.
+> 🚨 **Aucun vol avec hélices avant que les six lignes soient vertes.**
+>
+> **Banc du 2026-09-18** : en FW-5, le lacet était bon mais le **roulis était
+> inversé** (aile droite abaissée → M1 et M4 au lieu de M2 et M3). Le défaut ne
+> venait pas de l'inversion consigne + mesure à l'entrée du PID : elle est
+> nécessaire avec ce mixage. Il venait du signe de `ay` dans la mesure de roll,
+> inversé à tort en FW-5 (détail au §2, « Mise en œuvre »). **FW-5b** remet ce
+> signe, sans toucher au mixage, au PID, au pitch ni au lacet. Les deux lignes
+> de roulis (main + joystick) sont vertes après FW-5b.
 >
 > Reste aussi à vérifier au banc : attitude qui ne dérive pas, drone **à plat et
 > immobile** pendant quelques minutes (le relevé du 2026-09-17 a duré 10 s, carte
@@ -302,7 +311,8 @@ Broches libres après les moteurs (D0–D3) et l'I²C (D4–D5) : D6–D10.
 | FW-2 | Machine à états, failsafe 300 ms, conditions d'armement (P2, P3) | Arrêt du Wi-Fi du téléphone → moteurs à 0 en < 500 ms ; ARM refusé avec throttle haut | ✅ Fait |
 | FW-3 | Protocole binaire + HELLO + détection legacy (§4) | App en mode binaire : consignes cohérentes dans les logs, compteur CRC à 0 | ✅ Fait |
 | FW-4 | Télémétrie 10 Hz | L'app affiche l'attitude en inclinant le drone à la main | ✅ Fait, validé au banc le 2026-09-17 |
-| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | ✅ Fait, `loopHz` = 250 Hz stables. 🚨 **5 des 6 tests de signes du §6.5 restent à faire : obligatoires avant FW-7 (premier vol)** |
+| FW-5 | Boucle 250 Hz, IMU permanente, calibration, PID à `dt` mesuré (P5–P9, P13, P15) | `loopHz` stable ; attitude qui ne dérive pas au repos ; test des signes du mixage | ✅ Fait, `loopHz` = 250 Hz stables. 🚨 Banc du 2026-09-18 : pitch et lacet ✅, **roulis inversé → FW-5b** |
+| FW-5b | **Correction du signe de roulis** : mesure de roll remise à `atan2(+ay, az)`, cohérente avec `+gyro.x` ; l'inversion consigne + mesure à l'entrée du PID est conservée (§2, §6.5) | Aile droite abaissée → M1/M4 → **M2/M3** ; joystick droit vers la droite → M1, M4 | ✅ Fait, validé au banc le 2026-09-18. Restent au §6.5 : joystick avant, joystick de lacet, dérive au repos |
 | FW-6 | Mesure batterie (§7) | Écart < 50 mV avec le multimètre | ⏳ À faire |
 | FW-7 | **Premier vol** avec hélices, en extérieur ou dans un espace dégagé | Stationnaire de 30 s | ⏳ À faire — **interdit avant que les 6 tests de signes du §6.5 soient verts** |
 | FW-8 | Paramètres via l'app (§4.6) | PID modifiés depuis l'app et conservés après reboot | ⏳ À faire |
